@@ -1,159 +1,51 @@
 # 00 - Project Charter
 
-## Purpose
+## Documentation Strategy
 
-The Evolution Toy Universe is an educational software project that
-explores how complex behavior can emerge from simple rules.
+The project documentation is intentionally divided into a series of
+focused design documents.
 
-Rather than simulating evolution through predetermined scripts or
-handcrafted intelligence, the project creates a virtual universe
-governed by a small set of physical and biological laws. Organisms exist
-within this environment and compete for limited resources. Survival and
-reproduction determine which traits persist over time.
+The numbering represents a **dependency order**, not merely a table of
+contents. Lower-numbered documents define concepts that later documents
+build upon.
 
-The primary goal is not to prove or disprove any scientific or
-philosophical position. Instead, it is to construct an interactive
-laboratory where the consequences of different assumptions can be
-observed directly.
+**Guiding rules**
 
-------------------------------------------------------------------------
+-   Lower-numbered documents should not depend on higher-numbered
+    documents.
+-   Higher-numbered documents may reference concepts defined earlier.
+-   The repository is the authoritative source for project knowledge.
+-   ChatGPT conversations are working sessions whose conclusions should
+    be promoted into the appropriate Markdown document.
+-   `design.md` is an assembled/master document generated from these
+    source documents and should not be edited directly.
 
-## Vision
+### Documentation Structure
 
-Create a world that begins with extremely simple organisms and allows
-increasing complexity to emerge naturally.
-
-The simulation should encourage curiosity by allowing users to ask
-questions such as:
-
--   What minimal ingredients are necessary for evolution?
--   How much complexity can emerge from simple rules?
--   Which behaviors appear repeatedly under different conditions?
--   Which assumptions produce dramatically different outcomes?
--   What kinds of stable ecosystems develop over long periods?
-
-------------------------------------------------------------------------
-
-## Educational Goals
-
-The project should help users understand concepts including:
-
--   natural selection
--   mutation
--   heredity
--   competition
--   cooperation
--   specialization
--   adaptation
--   extinction
--   emergence
--   ecological balance
-
-The emphasis is on experimentation rather than instruction.
-
-------------------------------------------------------------------------
-
-## Design Philosophy
-
-Several principles guide every design decision.
-
-### Simplicity
-
-Prefer simple rules over complicated exceptions.
-
-Whenever possible, complicated behavior should emerge from combinations
-of simple mechanisms.
-
-### Transparency
-
-Every decision made by the simulation should be explainable.
-
-Hidden "magic" should be minimized.
-
-Users should be able to inspect organisms and understand why they
-behaved as they did.
-
-### Extensibility
-
-New environmental rules, sensors, organisms, and experiments should be
-easy to add without redesigning the system.
-
-### Scientific Curiosity
-
-The simulation should encourage hypothesis testing.
-
-Changing a parameter should produce observable consequences.
-
-Users should be encouraged to ask:
-
-> "What happens if..."
-
-rather than
-
-> "What is supposed to happen?"
-
-### Entertainment
-
-Although educational, the project should also be enjoyable to watch.
-
-Unexpected behavior, emergent ecosystems, and surprising adaptations are
-valuable outcomes.
-
-------------------------------------------------------------------------
-
-## Scope
-
-The first version intentionally limits itself.
-
-Initial goals include:
-
--   a two-dimensional world
--   renewable food resources
--   simple organisms
--   movement
--   energy consumption
--   reproduction
--   mutation
--   death
--   population statistics
-
-Future versions may introduce:
-
--   seasons
--   weather
--   multiple food sources
--   predators
--   genetics
--   nervous systems
--   memory
--   communication
--   social behavior
--   multicellular organisms
-
-------------------------------------------------------------------------
-
-## Success Criteria
-
-The project will be considered successful when:
-
--   organisms survive without scripting
--   natural selection becomes observable
--   different environments produce different populations
--   unexpected strategies emerge
--   users can run experiments by changing parameters
--   the simulation remains understandable despite increasing complexity
-
-------------------------------------------------------------------------
-
-## Non-Goals
-
-The project is **not** intended to:
-
--   accurately reproduce Earth's evolutionary history
--   simulate every biological process
--   argue for or against any philosophical or theological position
--   become a high-performance game engine
--   maximize graphical realism
-
-Instead, it seeks to become a clear, extensible sandbox for exploring
-emergent behavior.
+``` text
+docs/
+├── README.md
+├── 00-project-charter.md
+├── 01-vision.md
+├── 02-core-principles.md
+├── 03-simulation-model.md
+├── 04-world-model.md
+├── 05-organism-model.md
+├── 06-energy-model.md
+├── 07-reproduction.md
+├── 08-neural-system.md
+├── 09-ui.md
+├── 10-technical-design.md
+├── 11-roadmap.md
+├── 12-philosophy.md
+├── design.md        # Generated master document
+│
+├── adr/
+│   ├── ADR-0001-...
+│   └── ...
+│
+└── assets/
+    ├── diagrams/
+    ├── images/
+    └── animations/
+```
