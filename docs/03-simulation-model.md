@@ -281,7 +281,7 @@ The exact conditions governing reproduction, inheritance, mutation, lifespan, an
 
 ## 9. Randomness
 
-The simulation is intentionally **deterministic wherever possible**. Given the same initial world state and the same sequence of random events, the simulation will always produce the same future world states.
+The simulation is intentionally **deterministic wherever possible**. Given the same initial world state and the same the same random seed, the simulation will always produce the same future world states.
 
 Randomness is not used to simplify implementation or to make organism behavior appear more interesting. Instead, randomness represents a deliberate property of the toy universe and is introduced only where it serves a fundamental role.
 
@@ -324,3 +324,104 @@ The simulation should support reproducible experiments.
 By recording the initial world configuration and the sequence of random events, an identical simulation can be replayed for debugging, experimentation, and scientific comparison.
 
 This supports the project's goal of creating a simple, understandable universe whose behavior emerges from consistent rules rather than arbitrary outcomes.
+
+## 10. Metrics and History
+
+The simulation engine may expose observational metrics describing the state of the Toy Universe at each simulation tick. These metrics exist solely for analysis, visualization, debugging, and experimentation. They do not influence the behavior of the simulation itself.
+
+Examples of simulation metrics include:
+
+* Current simulation tick
+* Number of living organisms
+* Births and deaths during the current tick
+* Total energy contained in organisms
+* Total energy contained within the environment
+* Average organism age
+* Longest-lived organism
+* Population growth rate
+* Additional derived metrics as the simulation evolves
+
+The simulation may optionally retain historical metric data to support charts, graphs, replay, and scientific analysis. History retention policies are implementation details and may range from retaining only the current state to storing periodic snapshots or complete simulation histories.
+
+### Deterministic Execution
+
+The simulation should be deterministic whenever practical. Given the same simulation version, configuration, initial world state, and random seed, the simulation should produce identical results.
+
+Deterministic execution provides several important benefits:
+
+* Reproducible scientific experiments
+* Reliable regression testing
+* Repeatable debugging of unexpected behaviors
+* Sharing interesting simulations by recording only their configuration and random seed
+
+Randomness within the simulation should originate from a single deterministic pseudo-random number generator initialized with the simulation seed. All stochastic events should consume values from this generator in a consistent and predictable order.
+
+Determinism is considered a design goal rather than an absolute requirement. Future implementation decisions, such as parallel execution or hardware acceleration, may require carefully considered trade-offs between performance and perfect reproducibility.
+
+## 11. Open Design Questions
+
+The following questions are intentionally left unresolved. The initial Toy Universe should begin with the smallest coherent set of rules capable of supporting survival, reproduction, and evolution.
+
+Additional environmental processes, organism capabilities, and physical rules should not be introduced merely because they are plausible or interesting. The simpler system should first be implemented, observed, and tested. Metrics and repeatable experiments can then reveal where additional rules might produce meaningful new behavior or address limitations in the existing model.
+
+These open questions therefore represent possible future experimental extensions rather than requirements for the initial simulation.
+
+### Environment Evolution
+
+* Will the environment change beyond local energy consumption and regeneration?
+* Should the world eventually include larger-scale processes such as seasons, weather, erosion, or climate variation?
+* Should organisms be capable of modifying the environment beyond consuming available energy?
+* Could organism activity alter future energy availability or local environmental conditions?
+
+### Energy Sources
+
+* How should energy enter or regenerate within the world?
+* Should energy regeneration remain constant, or vary by location and time?
+* Should energy availability fluctuate in cycles?
+* Should environmental energy ultimately be governed by additional rules rather than appearing through a simple regeneration mechanism?
+
+### Long-Term Evolution
+
+* Should species remain an emergent concept, or should the simulation formally classify organisms into species for analysis?
+* How should ancestry and lineage be represented?
+* What measures should be used to describe genetic diversity?
+* Could stable ecological roles or population niches emerge without being explicitly defined?
+
+### Neural Complexity
+
+* How sophisticated should the neural system eventually become?
+* Should organisms be capable of memory, learning, or internal state beyond immediate perception?
+* Which parts of the neural architecture should be fixed, and which should be evolvable?
+* How much complexity can be added without making organism behavior difficult to understand or inspect?
+
+### Persistence and Replay
+
+* What information should be stored when a simulation is saved?
+* Should a saved simulation contain the complete current state, its original configuration and seed, or both?
+* Should simulations support replay from their initial seed, periodic snapshots, recorded events, or some combination of these?
+* How much history should be retained for visualization, analysis, and debugging?
+
+### Scalability and Performance
+
+* How large should worlds and populations eventually become?
+* When should performance optimizations be introduced?
+* Can parallel execution preserve deterministic behavior?
+* What trade-offs between scale, performance, observability, and reproducibility are acceptable?
+
+### Guiding Design Tension
+
+A continuing design question is how much the simulation should intentionally encourage complexity rather than allowing complexity to emerge from simple rules.
+
+Whenever a new mechanism is proposed, the project should ask:
+
+> Is this rule necessary for the universe to function, or are we adding it because we expect a particular outcome?
+
+The design should favor rules that establish consistent local interactions while avoiding special mechanisms intended to force specific behaviors, strategies, species, or evolutionary outcomes.
+
+These questions should be revisited after the initial simulation has been implemented and observed. New rules can then be introduced individually and evaluated through repeatable experiments, allowing the Toy Universe to grow in complexity without losing the simplicity and transparency of its foundation.
+
+### Conclusion
+
+The Simulation Model defines the execution semantics of the Toy Universe. It specifies how time advances, how organisms perceive and act, how actions are resolved, how energy flows, how randomness is applied, and how deterministic world-state transitions occur.
+
+The simulation engine remains intentionally simple, providing a predictable and inspectable foundation upon which more complex behavior may emerge. Detailed behavior of individual subsystems—including the World Model, Organism Model, Energy Model, Reproduction Model, Neural System, and User Interface—is described in their respective design documents.
