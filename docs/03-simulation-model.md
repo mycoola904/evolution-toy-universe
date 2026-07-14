@@ -80,3 +80,81 @@ Each simulation tick consists of four phases:
    - Energy changes, environmental changes, births, deaths, and statistical information are finalized, producing the next world state.
 
 This phased approach ensures that every organism operates under the same conditions during a given tick. Outcomes are determined solely by the laws of the simulation rather than by execution order, reinforcing the project's core principle that **Nothing is Special**.
+
+## 2. Simulation Loop
+
+The Toy Universe advances through a deterministic sequence of phases during each simulation tick. Every organism and world object observes the same world state at the beginning of the tick, computes its next action independently, and then all state changes are applied simultaneously.
+
+This synchronous update model prevents organisms from gaining an advantage simply because they were processed earlier in an iteration.
+
+### Simulation Tick
+
+Each tick proceeds through the following phases:
+
+1. **Observe**
+
+   * Every organism gathers information from its local environment.
+   * Sensors produce inputs for the organism's neural system.
+   * No world state is modified during this phase.
+
+2. **Think**
+
+   * Each organism processes its sensory inputs.
+   * The neural system produces a set of intended actions.
+   * Decisions are recorded but not yet executed.
+
+3. **Act**
+
+   * All intended actions are applied simultaneously.
+   * Typical actions may include:
+
+     * Movement
+     * Turning
+     * Eating
+     * Attacking
+     * Reproducing
+     * Communication
+     * Remaining idle
+
+4. **Resolve Interactions**
+
+   * Conflicts resulting from simultaneous actions are resolved.
+   * Examples include:
+
+     * Multiple organisms attempting to enter the same location.
+     * Multiple organisms attempting to consume the same resource.
+     * Simultaneous attacks.
+   * Resolution rules are deterministic and documented separately.
+
+5. **Update Energy**
+
+   * Energy costs for actions are applied.
+   * Energy gained from food or other sources is added.
+   * Organisms with insufficient energy may die.
+   * Environmental energy sources may regenerate or decay according to world rules.
+
+6. **Life Cycle**
+
+   * Births are finalized.
+   * Deaths are processed.
+   * Organisms are added to or removed from the world.
+   * Population statistics are updated.
+
+7. **Advance Time**
+
+   * The simulation tick counter is incremented.
+   * The next tick begins.
+
+### Design Principles
+
+The simulation loop should satisfy several important properties:
+
+* **Deterministic** — Given the same initial world state and random seed, the simulation always produces the same results.
+
+* **Synchronous** — Every organism acts from the same snapshot of the world.
+
+* **Modular** — Individual phases can evolve without changing the overall structure of the loop.
+
+* **Simple** — The loop should remain easy to understand and reason about. Additional complexity belongs inside the individual subsystems rather than the scheduler itself.
+
+The simulation loop intentionally contains no organism-specific behavior. It merely defines the order in which the universe evolves.
