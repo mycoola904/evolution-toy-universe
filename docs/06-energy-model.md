@@ -287,6 +287,18 @@ Maintaining approximate conservation makes the simulation easier to reason about
 
 ---
 
+# Capability Costs
+
+Every organism capability has an associated energy cost. Enhanced sensing, movement, processing, or any future capability is never free. Organisms with greater capabilities therefore require more energy to maintain and operate.
+
+This principle creates natural evolutionary tradeoffs. A mutation that increases an organism's capability may improve its chances of finding resources or making better decisions, but it also increases the energy required to survive. Likewise, a mutation that reduces a capability may decrease performance while lowering energy consumption.
+
+The Energy Model intentionally defines only this relationship. The exact cost functions for individual capabilities (such as sensing range, neural processing, or movement) are implementation details and may be tuned as the simulation evolves.
+
+This ensures that no capability is inherently "better." Whether a mutation is advantageous depends entirely on the environment and the balance between its benefits and its energy cost.
+
+---
+
 # Tunable Parameters
 
 The following values should remain configurable.
