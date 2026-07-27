@@ -1,7 +1,7 @@
-from direction import Direction
+from domain.direction import Direction
 
 class Organism:
-    def __init__(self):
+    def __init__(self, genome, brain):
         self.x = 0
         self.y = 0
 
@@ -9,5 +9,5 @@ class Organism:
 
         self.energy = 100.0
 
-        self.genome = None
-        self.brain = None
+        self.genome = genome
+        self.brain = brain
