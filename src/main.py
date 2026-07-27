@@ -34,6 +34,10 @@ def main():
     print(f"Organisms: {len(simulation.organisms)}")
     print(f"Organism genome: {simulation.organisms[0].genome}")
     print(f"Organism brain: {simulation.organisms[0].brain}")
+
+    # Run the simulation for a few steps
+    for _ in range(10):
+        simulation.step()
     
 
 if __name__ == "__main__":
