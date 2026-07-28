@@ -6,7 +6,7 @@ from domain.cell import Cell
 from domain.world import World
 
 def main():
-    seed = 43  # Set a seed for reproducibility
+    seed = 42  # Set a seed for reproducibility
 
     width = 20
     height = 20
@@ -66,8 +66,16 @@ def main():
     print(f"First 10 cell energies: {first_ten_energy_values}")
 
 
+    current_cell = world.get_cell(
+        organism.x,
+        organism.y,
+        )
+
+    print(f"Organism initial position: ({organism.x}, {organism.y})")
+    print(f"Organism initial energy: {current_cell.energy}")
+
     # Run the simulation for a few steps
-    for _ in range(10):
+    for _ in range(2):
         simulation.step()
 
 
