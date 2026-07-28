@@ -6,7 +6,7 @@ from domain.cell import Cell
 from domain.world import World
 
 def main():
-    seed = 42  # Set a seed for reproducibility
+    seed = 43  # Set a seed for reproducibility
 
     width = 20
     height = 20
@@ -50,8 +50,14 @@ def main():
         if cell.energy > 0
     )
 
+    first_ten_energy_values = [
+        cell.energy
+        for cell in world.cells[:10]
+    ]
+
+
     print("=== Big Bang ===")
-    print(f"Seed: {simulation.seed}")
+    print(f"Seed: {seed}")
     print(f"World size: {world.width} x {world.height}")
     print(f"Cells: {len(world.cells)}")
     print(f"Organisms: {len(simulation.organisms)}")
@@ -59,10 +65,6 @@ def main():
     print(f"Total environmental energy: {total_energy}")
     print(f"First 10 cell energies: {first_ten_energy_values}")
 
-    first_ten_energy_values = [
-        cell.energy
-        for cell in world.cells[:10]
-    ]
 
     # Run the simulation for a few steps
     for _ in range(10):
