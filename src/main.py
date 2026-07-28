@@ -6,6 +6,7 @@ from domain.cell import Cell
 from domain.world import World
 
 def main():
+    seed = 42  # Set a seed for reproducibility
 
     width = 20
     height = 20
@@ -25,7 +26,7 @@ def main():
         )
 
 
-    simulation = Simulation(world)
+    simulation = Simulation(world, seed)
     simulation.organisms.append(organism)
 
     print(f"Tick: {simulation.tick}")

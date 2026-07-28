@@ -1,5 +1,11 @@
+import random
+
+from domain.world import World
+
 class Simulation:
-    def __init__(self, world):
+    def __init__(self, world: World, seed: int):
+        if seed is not None:
+            random.seed(seed)
         self.world = world
         self.tick = 0
         self.organisms = []
