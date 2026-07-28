@@ -4,8 +4,6 @@ from domain.world import World
 
 class Simulation:
     def __init__(self, world: World, seed: int):
-        if seed is not None:
-            random.seed(seed)
         self.random = random.Random(seed)   
         self.world = world
         self.tick = 0
@@ -21,8 +19,12 @@ class Simulation:
                     minimum_energy, 
                     maximum_energy
                     )
-                           
 
+    def random_position(self):
+        x = self.random.randrange(0, self.world.width)
+        y = self.random.randrange(0, self.world.height)
+        return x, y
+    
     def step(self):
         self.tick += 1
 
@@ -37,8 +39,8 @@ class Simulation:
         energy_before = organism.energy + cell.energy
 
         energy_eaten = cell.energy
-        organism.energy += energy_eaten
-        cell.energy -= energy_eaten
+
+        organism.eat(cell)
 
         energy_after = organism.energy + cell.energy
         print(f"Energy before eating: {energy_before}")

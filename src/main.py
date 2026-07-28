@@ -4,9 +4,11 @@ from domain.organism import Organism
 from domain.simulation import Simulation
 from domain.cell import Cell
 from domain.world import World
+import random
 
 def main():
     seed = 42  # Set a seed for reproducibility
+    random_generator = random.Random(seed)
 
     width = 20
     height = 20
@@ -17,16 +19,19 @@ def main():
 
     world = World(width, height, cells)
 
+    simulation = Simulation(world, seed)
+
+    organism_x, organism_y = simulation.random_position()
+
     genome = Genome()
     brain = NeuralNetwork(genome)
 
     organism = Organism(
-        genome,
-        brain
-        )
-
-
-    simulation = Simulation(world, seed)
+        genome=genome,
+        brain=brain,
+        x=organism_x,
+        y=organism_y
+    )
 
     simulation.initialize_cell_energy(
         minimum_energy=0,
