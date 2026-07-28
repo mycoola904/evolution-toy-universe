@@ -8,7 +8,7 @@ import random
 
 def main():
     seed = 42  # Set a seed for reproducibility
-    random_generator = random.Random(seed)
+    # random_generator = random.Random(seed)
 
     width = 20
     height = 20
