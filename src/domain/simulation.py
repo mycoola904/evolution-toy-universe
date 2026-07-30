@@ -48,17 +48,17 @@ class Simulation:
         return simulation
 
     def initialize_cell_energy(
-                self, 
-                minimum_energy: int,
-                maximum_energy: int
-                ) -> None:
-            for cell in self.world.cells:
-                cell.energy = self.random.randint(
-                    minimum_energy, 
-                    maximum_energy
-                    )
+        self, 
+        minimum_energy: int,
+        maximum_energy: int
+    ) -> None:
+        for cell in self.world.cells:
+            cell.energy = self.random.randint(
+                minimum_energy, 
+                maximum_energy
+                )
 
-    def random_position(self):
+    def random_position(self) -> tuple[int, int]:
         x = self.random.randrange(0, self.world.width)
         y = self.random.randrange(0, self.world.height)
         return x, y
@@ -80,16 +80,15 @@ class Simulation:
 
         return organism
     
-    def step(self):
+    def step(self) -> None:
         self.tick += 1
 
         print(f"Tick: {self.tick}")
 
-        # organism = self.organisms[0]
+        
         for organism in self.organisms:
             cell = self.world.get_cell(organism.x, organism.y)
-
-            
+                    
 
             print(f"Cell energy before eating: {cell.energy}")
             print(f"Organism energy before eating: {organism.energy}")
