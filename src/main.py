@@ -14,7 +14,7 @@ def main() -> None:
 
     simulation = Simulation.big_bang(config)
 
-    simulation.print_initial_state()
+    # simulation.print_initial_state()
 
     for _ in range(2):
         simulation.step()
