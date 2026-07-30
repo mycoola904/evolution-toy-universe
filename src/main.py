@@ -1,85 +1,21 @@
-from domain.genome import Genome
-from domain.neural_network import NeuralNetwork
-from domain.organism import Organism
 from domain.simulation import Simulation
-from domain.cell import Cell
-from domain.world import World
-import random
+from domain.simulation_config import SimulationConfig
 
-def main():
-    seed = 42  # Set a seed for reproducibility
-    # random_generator = random.Random(seed)
 
-    width = 20
-    height = 20
-    
-    cells = [
-        Cell() for _ in range(width * height)
-    ]
-
-    world = World(width, height, cells)
-
-    simulation = Simulation(world, seed)
-
-    organism_x, organism_y = simulation.random_position()
-
-    genome = Genome()
-    brain = NeuralNetwork(genome)
-
-    organism = Organism(
-        genome=genome,
-        brain=brain,
-        x=organism_x,
-        y=organism_y
+def main() -> None:
+    config = SimulationConfig(
+        seed=42,
+        world_width=20,
+        world_height=20,
+        initial_organisms=1,
+        minimum_cell_energy=0,
+        maximum_cell_energy=10,
     )
 
-    simulation.initialize_cell_energy(
-        minimum_energy=0,
-        maximum_energy=10
-    )
+    simulation = Simulation.big_bang(config)
 
-    simulation.organisms.append(organism)
+    simulation.print_initial_state()
 
-    # print(f"Tick: {simulation.tick}")
-    # print(f"World size: {simulation.world.width} x {simulation.world.height}")
-    # print(f"Cells: {len(simulation.world.cells)}")
-    # print(f"Organisms: {len(simulation.organisms)}")
-    # print(f"Organism genome: {simulation.organisms[0].genome}")
-    # print(f"Organism brain: {simulation.organisms[0].brain}")
-
-    total_energy = sum(cell.energy for cell in world.cells)
-
-    energized_cells = sum(
-        1
-        for cell in world.cells
-        if cell.energy > 0
-    )
-
-    first_ten_energy_values = [
-        cell.energy
-        for cell in world.cells[:10]
-    ]
-
-
-    print("=== Big Bang ===")
-    print(f"Seed: {seed}")
-    print(f"World size: {world.width} x {world.height}")
-    print(f"Cells: {len(world.cells)}")
-    print(f"Organisms: {len(simulation.organisms)}")
-    print(f"Energized cells: {energized_cells}")
-    print(f"Total environmental energy: {total_energy}")
-    print(f"First 10 cell energies: {first_ten_energy_values}")
-
-
-    current_cell = world.get_cell(
-        organism.x,
-        organism.y,
-        )
-
-    print(f"Organism initial position: ({organism.x}, {organism.y})")
-    print(f"Organism initial energy: {current_cell.energy}")
-
-    # Run the simulation for a few steps
     for _ in range(2):
         simulation.step()
 
