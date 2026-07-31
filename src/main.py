@@ -16,7 +16,7 @@ def main() -> None:
 
     # simulation.print_initial_state()
 
-    for _ in range(2):
+    for _ in range(1):
         simulation.step()
 
 
