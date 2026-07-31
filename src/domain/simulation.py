@@ -90,28 +90,32 @@ class Simulation:
         print(f"Tick: {self.tick}")
 
         for index, organism in enumerate(self.organisms):
-            direction_before = organism.direction
+            previous_location = (organism.x, organism.y)
             action = self.choose_action(organism)
             self.execute_action(organism, action)
-            direction_after = organism.direction
+            final_location = (organism.x, organism.y)
 
             self._print_organism_step(
                 index=index,
                 organism=organism,
                 action=action,
-                direction_before=direction_before,
-                direction_after=direction_after,
+                previous_location=previous_location,
+                final_location=final_location,
             )
 
     def choose_action(self, organism: Organism) -> Action:
         _ = organism
-        return self.random.choice([Action.TURN_LEFT, Action.TURN_RIGHT])
+        return Action.MOVE_FORWARD
 
     def execute_action(self, organism: Organism, action: Action) -> None:
-        if action == Action.TURN_LEFT:
-            organism.turn_left()
-        elif action == Action.TURN_RIGHT:
-            organism.turn_right()
+        if action == Action.MOVE_FORWARD:
+            next_x, next_y = self.world.move_forward_position(
+                x=organism.x,
+                y=organism.y,
+                direction=organism.direction,
+            )
+            organism.x = next_x
+            organism.y = next_y
             
 
     def _print_organism_step(
@@ -119,13 +123,13 @@ class Simulation:
     index: int,
     organism: Organism,
     action: Action,
-    direction_before: Direction,
-    direction_after: Direction,
+    previous_location: tuple[int, int],
+    final_location: tuple[int, int],
     ) -> None:
         print(f"Organism {index}:")
-        print(f"  Position: ({organism.x}, {organism.y})")
+        print(f"  Direction: {organism.direction.name}")
         print(f"  Action: {action.name}")
-        print(f"  Direction before action: {direction_before.name}")
-        print(f"  Direction after action: {direction_after.name}")
+        print(f"  Previous location: {previous_location}")
+        print(f"  Final location: {final_location}")
 
     
