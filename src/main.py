@@ -4,7 +4,7 @@ from domain.simulation_config import SimulationConfig
 
 def main() -> None:
     config = SimulationConfig(
-        seed=42,
+        seed=41,
         world_width=20,
         world_height=20,
         initial_organisms=2,

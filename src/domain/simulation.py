@@ -7,6 +7,7 @@ from domain.organism import Organism
 from domain.genome import Genome
 from domain.neural_network import NeuralNetwork
 from domain.direction import Direction
+from domain.action import Action
 
 class Simulation:
     def __init__(self, world: World, seed: int):
@@ -88,39 +89,43 @@ class Simulation:
 
         print(f"Tick: {self.tick}")
 
-        
-        for organism in self.organisms:
-            cell = self.world.get_cell(organism.x, organism.y)
-
-            energy_before = organism.energy + cell.energy
-
-            organism.eat(cell)
-
-            energy_after = organism.energy + cell.energy
+        for index, organism in enumerate(self.organisms):
+            direction_before = organism.direction
+            action = self.choose_action(organism)
+            self.execute_action(organism, action)
+            direction_after = organism.direction
 
             self._print_organism_step(
-                index=self.organisms.index(organism),
+                index=index,
                 organism=organism,
-                cell=cell,
-                energy_before=energy_before,
-                energy_after=energy_after,
+                action=action,
+                direction_before=direction_before,
+                direction_after=direction_after,
             )
+
+    def choose_action(self, organism: Organism) -> Action:
+        _ = organism
+        return self.random.choice([Action.TURN_LEFT, Action.TURN_RIGHT])
+
+    def execute_action(self, organism: Organism, action: Action) -> None:
+        if action == Action.TURN_LEFT:
+            organism.turn_left()
+        elif action == Action.TURN_RIGHT:
+            organism.turn_right()
             
 
     def _print_organism_step(
     self,
     index: int,
     organism: Organism,
-    cell: Cell,
-    energy_before: float,
-    energy_after: float,
+    action: Action,
+    direction_before: Direction,
+    direction_after: Direction,
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Position: ({organism.x}, {organism.y})")
-        print(f"  Direction: {organism.direction}")
-        print(f"  Energy before eating: {energy_before}")
-        print(f"  Energy after eating: {energy_after}")
-        print(f"  Cell energy after eating: {cell.energy}")
-        print(f"  Organism energy after eating: {organism.energy}")
+        print(f"  Action: {action.name}")
+        print(f"  Direction before action: {direction_before.name}")
+        print(f"  Direction after action: {direction_after.name}")
 
     
