@@ -7,7 +7,7 @@ def main() -> None:
         seed=42,
         world_width=20,
         world_height=20,
-        initial_organisms=1,
+        initial_organisms=2,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
     )

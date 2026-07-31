@@ -91,20 +91,36 @@ class Simulation:
         
         for organism in self.organisms:
             cell = self.world.get_cell(organism.x, organism.y)
-                    
-            print(f"Organism direction: {organism.direction}")
-            print(f"Cell energy before eating: {cell.energy}")
-            print(f"Organism energy before eating: {organism.energy}")
 
             energy_before = organism.energy + cell.energy
 
             organism.eat(cell)
 
             energy_after = organism.energy + cell.energy
+
+            self._print_organism_step(
+                index=self.organisms.index(organism),
+                organism=organism,
+                cell=cell,
+                energy_before=energy_before,
+                energy_after=energy_after,
+            )
             
-            print(f"Energy before eating: {energy_before}")
-            print(f"Energy after eating: {energy_after}")
-            print(f"Cell energy after eating: {cell.energy}")
-            print(f"Organism energy after eating: {organism.energy}")
+
+    def _print_organism_step(
+    self,
+    index: int,
+    organism: Organism,
+    cell: Cell,
+    energy_before: float,
+    energy_after: float,
+    ) -> None:
+        print(f"Organism {index}:")
+        print(f"  Position: ({organism.x}, {organism.y})")
+        print(f"  Direction: {organism.direction}")
+        print(f"  Energy before eating: {energy_before}")
+        print(f"  Energy after eating: {energy_after}")
+        print(f"  Cell energy after eating: {cell.energy}")
+        print(f"  Organism energy after eating: {organism.energy}")
 
     
