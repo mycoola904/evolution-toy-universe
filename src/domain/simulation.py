@@ -6,6 +6,7 @@ from domain.cell import Cell
 from domain.organism import Organism
 from domain.genome import Genome
 from domain.neural_network import NeuralNetwork
+from domain.direction import Direction
 
 class Simulation:
     def __init__(self, world: World, seed: int):
@@ -65,6 +66,7 @@ class Simulation:
 
     def create_initial_organism(self) -> Organism:
         x, y = self.random_position()
+        direction = self.random.choice(list(Direction))
 
         genome = Genome()
         brain = NeuralNetwork(genome)
@@ -74,6 +76,7 @@ class Simulation:
             brain=brain,
             x=x,
             y=y,
+            direction=direction,
         )
 
         self.organisms.append(organism)
@@ -89,7 +92,7 @@ class Simulation:
         for organism in self.organisms:
             cell = self.world.get_cell(organism.x, organism.y)
                     
-
+            print(f"Organism direction: {organism.direction}")
             print(f"Cell energy before eating: {cell.energy}")
             print(f"Organism energy before eating: {organism.energy}")
 

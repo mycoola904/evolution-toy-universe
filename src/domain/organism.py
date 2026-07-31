@@ -1,11 +1,18 @@
 from domain.direction import Direction
 from domain.cell import Cell
 class Organism:
-    def __init__(self, genome, brain, x: int = 0, y: int = 0):
+    def __init__(
+        self,
+        genome,
+        brain,
+        x: int = 0,
+        y: int = 0,
+        direction: Direction = Direction.NORTH,
+    ):
         self.x = x
         self.y = y
 
-        self.direction = Direction.NORTH
+        self.direction = direction
 
         self.energy = 100.0
 
