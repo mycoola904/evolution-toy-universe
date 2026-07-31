@@ -105,9 +105,11 @@ class Simulation:
 
     def choose_action(self, organism: Organism) -> Action:
         _ = organism
-        return Action.MOVE_FORWARD
+        return self.random.choice(list(Action))
 
     def execute_action(self, organism: Organism, action: Action) -> None:
+        if action == Action.WAIT:
+            return
         if action == Action.MOVE_FORWARD:
             next_x, next_y = self.world.move_forward_position(
                 x=organism.x,
@@ -116,6 +118,13 @@ class Simulation:
             )
             organism.x = next_x
             organism.y = next_y
+        elif action == Action.TURN_LEFT:
+            organism.turn_left()
+        elif action == Action.TURN_RIGHT:
+            organism.turn_right()
+        elif action == Action.EAT:
+            cell = self.world.get_cell(organism.x, organism.y)
+            organism.eat(cell)
             
 
     def _print_organism_step(
