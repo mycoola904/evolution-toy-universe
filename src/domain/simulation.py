@@ -11,11 +11,17 @@ from domain.action import Action
 from domain.sensor import Sensor
 
 class Simulation:
-    def __init__(self, world: World, seed: int):
-        self.random = random.Random(seed)   
+    def __init__(
+        self,
+        world: World,
+        config: SimulationConfig,
+    ):
+        self.config = config
+        self.random = random.Random(config.seed)
         self.world = world
         self.tick = 0
         self.organisms = []
+
 
     @classmethod
     def big_bang(
@@ -37,7 +43,7 @@ class Simulation:
 
         simulation = cls(
             world=world,
-            seed=config.seed,
+            config=config,
         )
 
         simulation.initialize_cell_energy(
@@ -111,10 +117,13 @@ class Simulation:
             cell = self.world.get_cell(organism.x, organism.y)
             sensed_energy = cell.energy
 
+            normalized_cell_energy = sensed_energy / self.config.maximum_cell_energy
+
             sensor_values = {
-                Sensor.CELL_ENERGY: sensed_energy,
+                Sensor.CELL_ENERGY: normalized_cell_energy,
                 Sensor.BIAS: 1.0,
             }
+
 
             action, activations = organism.brain.choose_action(
                 sensor_values=sensor_values,
@@ -134,6 +143,7 @@ class Simulation:
                 final_location=final_location,
                 sensed_energy=sensed_energy,
                 activations=activations,
+                normalized_cell_energy=normalized_cell_energy
             )
 
     def execute_action(self, organism: Organism, action: Action) -> None:
@@ -165,6 +175,7 @@ class Simulation:
         final_location: tuple[int, int],
         sensed_energy: float = 0.0,
         activations: dict[Action, float] | None = None,
+        normalized_cell_energy: float = 0.0,
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
@@ -173,6 +184,7 @@ class Simulation:
         print(f"  Final location: {final_location}")
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
+        print(f"  Normalized sensed energy: {normalized_cell_energy:.2f}")
         print("  Organism genome weights:")
 
         for action, sensor_weights in organism.genome.weights.items():
