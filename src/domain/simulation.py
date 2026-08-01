@@ -98,12 +98,14 @@ class Simulation:
             cell = self.world.get_cell(organism.x, organism.y)
             sensed_energy = cell.energy
 
-            activations = organism.brain.evaluate(sensed_energy)
+            action, activations = organism.brain.choose_action(
+                input_value=sensed_energy,
+                random_generator=self.random,
+            )
 
 
-
-            action = self.choose_action(organism)
             self.execute_action(organism, action)
+
             final_location = (organism.x, organism.y)
 
             self._print_organism_step(
@@ -115,10 +117,6 @@ class Simulation:
                 sensed_energy=sensed_energy,
                 activations=activations,
             )
-
-    def choose_action(self, organism: Organism) -> Action:
-        _ = organism
-        return self.random.choice(list(Action))
 
     def execute_action(self, organism: Organism, action: Action) -> None:
         if action == Action.WAIT:
@@ -158,6 +156,8 @@ class Simulation:
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
         if activations is not None:
-            print(f"  Activations: {activations}")
+            print("  Activations:")
+            for action, activation in zip(Action, activations):
+                print(f"    {action.name:<15}: {activation:6.2f}")
 
     
