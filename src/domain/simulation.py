@@ -146,7 +146,7 @@ class Simulation:
         previous_location: tuple[int, int],
         final_location: tuple[int, int],
         sensed_energy: float = 0.0,
-        activations: list[float] = None,
+        activations: dict[Action, float] | None = None,
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
@@ -157,7 +157,7 @@ class Simulation:
         print(f"  Organism sensed energy: {sensed_energy}")
         if activations is not None:
             print("  Activations:")
-            for action, activation in zip(Action, activations):
+            for action, activation in activations.items():
                 print(f"    {action.name:<15}: {activation:6.2f}")
 
     
