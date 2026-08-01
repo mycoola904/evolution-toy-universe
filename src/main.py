@@ -11,6 +11,8 @@ def main() -> None:
         initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
+        minimum_initial_weight=-1.0,
+        maximum_initial_weight=1.0,
     )
 
     simulation = Simulation.big_bang(config)

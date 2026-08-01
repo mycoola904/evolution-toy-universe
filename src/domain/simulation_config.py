@@ -10,3 +10,5 @@ class SimulationConfig:
     initial_organism_energy: float
     minimum_cell_energy: int
     maximum_cell_energy: int
+    minimum_initial_weight: float = -1.0
+    maximum_initial_weight: float = 1.0

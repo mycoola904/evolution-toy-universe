@@ -47,6 +47,8 @@ class Simulation:
         for _ in range(config.initial_organisms):
             simulation.create_initial_organism(
                 energy=config.initial_organism_energy,
+                minimum_weight=config.minimum_initial_weight,
+                maximum_weight=config.maximum_initial_weight,
             )
 
         return simulation
@@ -67,11 +69,21 @@ class Simulation:
         y = self.random.randrange(0, self.world.height)
         return x, y
 
-    def create_initial_organism(self, energy: float) -> Organism:
+    def create_initial_organism(
+            self, 
+            energy: float, 
+            minimum_weight: float = -1.0, 
+            maximum_weight: float = 1.0
+        ) -> Organism:
         x, y = self.random_position()
         direction = self.random.choice(list(Direction))
 
-        genome = Genome()
+        genome = Genome.random_genome(
+            random_generator=self.random,
+            minimum_weight=minimum_weight,
+            maximum_weight=maximum_weight,
+        )
+
         brain = NeuralNetwork(genome)
 
         organism = Organism(
@@ -155,6 +167,9 @@ class Simulation:
         print(f"  Final location: {final_location}")
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
+        print(f"  Organism genome weights:")
+        for action, weight in organism.genome.weights.items():
+            print(f"    {action.name:<15}: {weight:6.2f}")
         if activations is not None:
             print("  Activations:")
             for action, activation in activations.items():

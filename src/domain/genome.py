@@ -1,11 +1,25 @@
 from domain.action import Action
+import random
 
 class Genome:
-    def __init__(self):
-        self.weights = {
-            Action.WAIT: 0.1,
-            Action.MOVE_FORWARD: 0.2,
-            Action.TURN_LEFT: -0.1,
-            Action.TURN_RIGHT: 0.0,
-            Action.EAT: 0.8,
+    def __init__(
+            self,
+            weights: dict[Action, float] | None = None,
+                ):
+        self.weights = weights
+
+    @classmethod
+    def random_genome(
+            cls,
+            random_generator: random.Random,
+            minimum_weight: float = -1.0,
+            maximum_weight: float = 1.0,
+        ) -> "Genome":
+        weights = {
+            action: random_generator.uniform(
+                minimum_weight,
+                maximum_weight
+            )
+            for action in Action
         }
+        return cls(weights=weights)        
