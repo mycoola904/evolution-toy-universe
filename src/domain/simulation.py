@@ -132,6 +132,7 @@ class Simulation:
 
 
             self.execute_action(organism, action)
+            self.burn_energy(organism)
 
             final_location = (organism.x, organism.y)
 
@@ -164,6 +165,9 @@ class Simulation:
         elif action == Action.EAT:
             cell = self.world.get_cell(organism.x, organism.y)
             organism.eat(cell)
+
+    def burn_energy(self, organism: Organism) -> None:
+        organism.energy -= self.config.base_energy_cost_per_tick
             
 
     def _print_organism_step(

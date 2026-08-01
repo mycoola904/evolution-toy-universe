@@ -12,3 +12,4 @@ class SimulationConfig:
     maximum_cell_energy: int
     minimum_initial_weight: float = -1.0
     maximum_initial_weight: float = 1.0
+    base_energy_cost_per_tick: float = 1.0
