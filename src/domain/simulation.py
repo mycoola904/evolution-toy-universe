@@ -98,6 +98,8 @@ class Simulation:
             cell = self.world.get_cell(organism.x, organism.y)
             sensed_energy = cell.energy
 
+            activations = organism.brain.evaluate(sensed_energy)
+
 
 
             action = self.choose_action(organism)
@@ -111,6 +113,7 @@ class Simulation:
                 previous_location=previous_location,
                 final_location=final_location,
                 sensed_energy=sensed_energy,
+                activations=activations,
             )
 
     def choose_action(self, organism: Organism) -> Action:
@@ -138,13 +141,14 @@ class Simulation:
             
 
     def _print_organism_step(
-    self,
-    index: int,
-    organism: Organism,
-    action: Action,
-    previous_location: tuple[int, int],
-    final_location: tuple[int, int],
-    sensed_energy: float = 0.0
+        self,
+        index: int,
+        organism: Organism,
+        action: Action,
+        previous_location: tuple[int, int],
+        final_location: tuple[int, int],
+        sensed_energy: float = 0.0,
+        activations: list[float] = None,
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
@@ -153,5 +157,7 @@ class Simulation:
         print(f"  Final location: {final_location}")
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
+        if activations is not None:
+            print(f"  Activations: {activations}")
 
     
