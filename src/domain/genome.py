@@ -1,12 +1,15 @@
-from domain.action import Action
 import random
+from domain.action import Action
+from domain.sensor import Sensor
+
 
 class Genome:
     def __init__(
             self,
-            weights: dict[Action, float] | None = None,
+            weights: dict[Action, dict[Sensor, float]],
                 ):
-        self.weights = weights
+        
+            self.weights = weights
 
     @classmethod
     def random_genome(
@@ -16,10 +19,14 @@ class Genome:
             maximum_weight: float = 1.0,
         ) -> "Genome":
         weights = {
-            action: random_generator.uniform(
-                minimum_weight,
-                maximum_weight
-            )
+            action: {
+                sensor: random_generator.uniform(
+                    minimum_weight,
+                    maximum_weight
+                )
+                for sensor in Sensor
+            }
             for action in Action
         }
-        return cls(weights=weights)        
+
+        return cls(weights=weights)
