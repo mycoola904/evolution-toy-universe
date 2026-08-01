@@ -13,3 +13,8 @@ class SimulationConfig:
     minimum_initial_weight: float = -1.0
     maximum_initial_weight: float = 1.0
     base_energy_cost_per_tick: float = 1.0
+    wait_energy_cost: float = 0.00
+    eat_energy_cost: float = 0.25
+    turn_left_energy_cost: float = 0.50
+    turn_right_energy_cost: float = 0.50
+    move_forward_energy_cost: float = 1.00

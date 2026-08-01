@@ -132,7 +132,7 @@ class Simulation:
 
 
             self.execute_action(organism, action)
-            self.burn_energy(organism)
+            energy_cost = self.burn_energy(organism, action)
 
             final_location = (organism.x, organism.y)
 
@@ -144,7 +144,8 @@ class Simulation:
                 final_location=final_location,
                 sensed_energy=sensed_energy,
                 activations=activations,
-                normalized_cell_energy=normalized_cell_energy
+                normalized_cell_energy=normalized_cell_energy,
+                energy_cost=energy_cost,
             )
 
     def execute_action(self, organism: Organism, action: Action) -> None:
@@ -166,8 +167,25 @@ class Simulation:
             cell = self.world.get_cell(organism.x, organism.y)
             organism.eat(cell)
 
-    def burn_energy(self, organism: Organism) -> None:
-        organism.energy -= self.config.base_energy_cost_per_tick
+    def action_energy_cost(self, action: Action) -> float:
+        if action == Action.WAIT:
+            return self.config.wait_energy_cost
+        if action == Action.EAT:
+            return self.config.eat_energy_cost
+        if action == Action.TURN_LEFT:
+            return self.config.turn_left_energy_cost
+        if action == Action.TURN_RIGHT:
+            return self.config.turn_right_energy_cost
+        if action == Action.MOVE_FORWARD:
+            return self.config.move_forward_energy_cost
+
+        raise ValueError(f"Unsupported action for energy cost: {action}")
+
+    def burn_energy(self, organism: Organism, action: Action) -> float:
+        action_cost = self.action_energy_cost(action)
+        total_energy_cost = self.config.base_energy_cost_per_tick + action_cost
+        organism.energy -= total_energy_cost
+        return total_energy_cost
             
 
     def _print_organism_step(
@@ -180,12 +198,14 @@ class Simulation:
         sensed_energy: float = 0.0,
         activations: dict[Action, float] | None = None,
         normalized_cell_energy: float = 0.0,
+        energy_cost: float = 0.0,
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
         print(f"  Action: {action.name}")
         print(f"  Previous location: {previous_location}")
         print(f"  Final location: {final_location}")
+        print(f"  Energy cost: {energy_cost:.2f}")
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
         print(f"  Normalized sensed energy: {normalized_cell_energy:.2f}")

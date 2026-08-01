@@ -14,6 +14,11 @@ def main() -> None:
         minimum_initial_weight=-1.0,
         maximum_initial_weight=1.0,
         base_energy_cost_per_tick=1.0,
+        wait_energy_cost=0.00,
+        eat_energy_cost=0.25,
+        turn_left_energy_cost=0.50,
+        turn_right_energy_cost=0.50,
+        move_forward_energy_cost=1.00,
     )
 
     simulation = Simulation.big_bang(config)
