@@ -5,6 +5,7 @@ class Organism:
         self,
         genome,
         brain,
+        energy: float = 100.0,
         x: int = 0,
         y: int = 0,
         direction: Direction = Direction.NORTH,
@@ -14,7 +15,7 @@ class Organism:
 
         self.direction = direction
 
-        self.energy = 100.0
+        self.energy = energy
 
         self.genome = genome
         self.brain = brain

@@ -45,7 +45,9 @@ class Simulation:
         )
 
         for _ in range(config.initial_organisms):
-            simulation.create_initial_organism()
+            simulation.create_initial_organism(
+                energy=config.initial_organism_energy,
+            )
 
         return simulation
 
@@ -65,7 +67,7 @@ class Simulation:
         y = self.random.randrange(0, self.world.height)
         return x, y
 
-    def create_initial_organism(self) -> Organism:
+    def create_initial_organism(self, energy: float) -> Organism:
         x, y = self.random_position()
         direction = self.random.choice(list(Direction))
 
@@ -75,6 +77,7 @@ class Simulation:
         organism = Organism(
             genome=genome,
             brain=brain,
+            energy=energy,
             x=x,
             y=y,
             direction=direction,
@@ -140,5 +143,6 @@ class Simulation:
         print(f"  Action: {action.name}")
         print(f"  Previous location: {previous_location}")
         print(f"  Final location: {final_location}")
+        print(f"  Energy: {organism.energy}")
 
     

@@ -8,6 +8,7 @@ def main() -> None:
         world_width=20,
         world_height=20,
         initial_organisms=2,
+        initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
     )

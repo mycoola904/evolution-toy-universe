@@ -7,5 +7,6 @@ class SimulationConfig:
     world_width: int
     world_height: int
     initial_organisms: int
+    initial_organism_energy: float
     minimum_cell_energy: int
     maximum_cell_energy: int
