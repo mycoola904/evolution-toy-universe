@@ -181,4 +181,10 @@ class Simulation:
             for sensor, weight in sensor_weights.items():
                 print(f"      {sensor.name:<15}: {weight:6.2f}")
 
+        if activations is not None:
+            print("  Organism activations:")
+
+            for action, activation in activations.items():
+                print(f"    {action.name:<15}: {activation:6.2f}")                
+
     
