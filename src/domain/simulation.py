@@ -94,6 +94,12 @@ class Simulation:
 
         for index, organism in enumerate(self.organisms):
             previous_location = (organism.x, organism.y)
+
+            cell = self.world.get_cell(organism.x, organism.y)
+            sensed_energy = cell.energy
+
+
+
             action = self.choose_action(organism)
             self.execute_action(organism, action)
             final_location = (organism.x, organism.y)
@@ -104,6 +110,7 @@ class Simulation:
                 action=action,
                 previous_location=previous_location,
                 final_location=final_location,
+                sensed_energy=sensed_energy,
             )
 
     def choose_action(self, organism: Organism) -> Action:
@@ -137,6 +144,7 @@ class Simulation:
     action: Action,
     previous_location: tuple[int, int],
     final_location: tuple[int, int],
+    sensed_energy: float = 0.0
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
@@ -144,5 +152,6 @@ class Simulation:
         print(f"  Previous location: {previous_location}")
         print(f"  Final location: {final_location}")
         print(f"  Energy: {organism.energy}")
+        print(f"  Organism sensed energy: {sensed_energy}")
 
     
