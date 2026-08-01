@@ -9,22 +9,18 @@ class NeuralNetwork:
         self.genome = genome
 
     def evaluate(
-            self, 
-            sensor_values: dict[Sensor, float]
-        ) -> dict[Action, float]:
+        self,
+        sensor_values: dict[Sensor, float],
+    ) -> dict[Action, float]:
         activations = {}
-        
 
         for action, sensor_weights in self.genome.weights.items():
-            activations = {}
+            activation = 0.0
 
-            for action, sensor_weights in self.genome.weights.items():
-                activation = 0.0
+            for sensor, weight in sensor_weights.items():
+                activation += sensor_values[sensor] * weight
 
-                for sensor, weight in sensor_weights.items():
-                    activation += sensor_values.get(sensor) * weight
-
-                activations[action] = activation
+            activations[action] = activation
 
         return activations
 
@@ -34,7 +30,7 @@ class NeuralNetwork:
             random_generator: random.Random,
     ) -> tuple[Action, dict[Action, float]]:
         activations = self.evaluate(sensor_values)
-        
+
         highest_activation = max(activations.values())
         
 

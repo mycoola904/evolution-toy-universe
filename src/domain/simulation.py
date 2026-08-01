@@ -8,6 +8,7 @@ from domain.genome import Genome
 from domain.neural_network import NeuralNetwork
 from domain.direction import Direction
 from domain.action import Action
+from domain.sensor import Sensor
 
 class Simulation:
     def __init__(self, world: World, seed: int):
@@ -110,8 +111,13 @@ class Simulation:
             cell = self.world.get_cell(organism.x, organism.y)
             sensed_energy = cell.energy
 
+            sensor_values = {
+                Sensor.CELL_ENERGY: sensed_energy,
+                Sensor.BIAS: 1.0,
+            }
+
             action, activations = organism.brain.choose_action(
-                input_value=sensed_energy,
+                sensor_values=sensor_values,
                 random_generator=self.random,
             )
 
@@ -167,12 +173,12 @@ class Simulation:
         print(f"  Final location: {final_location}")
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
-        print(f"  Organism genome weights:")
-        for action, weight in organism.genome.weights.items():
-            print(f"    {action.name:<15}: {weight:6.2f}")
-        if activations is not None:
-            print("  Activations:")
-            for action, activation in activations.items():
-                print(f"    {action.name:<15}: {activation:6.2f}")
+        print("  Organism genome weights:")
+
+        for action, sensor_weights in organism.genome.weights.items():
+            print(f"    {action.name}:")
+
+            for sensor, weight in sensor_weights.items():
+                print(f"      {sensor.name:<15}: {weight:6.2f}")
 
     
