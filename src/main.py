@@ -4,10 +4,10 @@ from domain.simulation_config import SimulationConfig
 
 def main() -> None:
     config = SimulationConfig(
-        seed=41,
+        seed=43,
         world_width=20,
         world_height=20,
-        initial_organisms=2,
+        initial_organisms=10,
         initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
