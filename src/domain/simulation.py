@@ -16,6 +16,7 @@ class Simulation:
         world: World,
         config: SimulationConfig,
     ):
+        self.initial_world_energy = 0.0
         self.config = config
         self.random = random.Random(config.seed)
         self.world = world
@@ -51,6 +52,10 @@ class Simulation:
             maximum_energy=config.maximum_cell_energy,
         )
 
+        simulation.initial_world_energy = (
+            simulation.total_world_energy()
+        )
+
         for _ in range(config.initial_organisms):
             simulation.create_initial_organism(
                 energy=config.initial_organism_energy,
@@ -71,6 +76,12 @@ class Simulation:
                 maximum_energy
                 )
 
+    def total_world_energy(self) -> float:
+        return sum(
+            cell.energy 
+            for cell in self.world.cells
+            ) 
+    
     def random_position(self) -> tuple[int, int]:
         x = self.random.randrange(0, self.world.width)
         y = self.random.randrange(0, self.world.height)
@@ -106,10 +117,14 @@ class Simulation:
 
         return organism
     
-    def step(self) -> None:
+    def step(self, show_details: bool = True) -> None:
         self.tick += 1
 
-        print(f"Tick: {self.tick}")
+        surviving_organisms: list[Organism] = []
+        death_this_tick = 0
+
+        if show_details:
+            print(f"Tick: {self.tick}")
 
         for index, organism in enumerate(self.organisms):
             previous_location = (organism.x, organism.y)
@@ -137,20 +152,37 @@ class Simulation:
             self.execute_action(organism, action)
             energy_cost = self.burn_energy(organism, action)
 
+            died_this_tick = organism.energy <= 0.0
+
+            if died_this_tick:
+                organism.energy = 0.0
+                death_this_tick += 1
+            else:
+                surviving_organisms.append(organism)
+
             final_location = (organism.x, organism.y)
 
-            self._print_organism_step(
-                index=index,
-                organism=organism,
-                action=action,
-                previous_location=previous_location,
-                final_location=final_location,
-                sensed_energy=sensed_energy,
-                activations=activations,
-                normalized_cell_energy=normalized_cell_energy,
-                normalized_stored_energy=normalized_stored_energy,
-                energy_cost=energy_cost,
-            )
+            if show_details:
+                self._print_organism_step(
+                    index=index,
+                    organism=organism,
+                    action=action,
+                    previous_location=previous_location,
+                    final_location=final_location,
+                    sensed_energy=sensed_energy,
+                    activations=activations,
+                    normalized_cell_energy=normalized_cell_energy,
+                    normalized_stored_energy=normalized_stored_energy,
+                    energy_cost=energy_cost,
+                    died_this_tick=died_this_tick,
+                )
+
+        self.organisms = surviving_organisms
+
+        if show_details:
+            print(f"Deaths this tick: {death_this_tick}")
+            print(f"Surviving organisms: {len(self.organisms)}")
+            
 
     def execute_action(self, organism: Organism, action: Action) -> None:
         if action == Action.WAIT:
@@ -199,6 +231,7 @@ class Simulation:
         action: Action,
         previous_location: tuple[int, int],
         final_location: tuple[int, int],
+        died_this_tick: bool,
         sensed_energy: float = 0.0,
         activations: dict[Action, float] | None = None,
         normalized_cell_energy: float = 0.0,
@@ -215,18 +248,82 @@ class Simulation:
         print(f"  Organism sensed energy: {sensed_energy}")
         print(f"  Normalized sensed energy: {normalized_cell_energy:.2f}")
         print(f"  Normalized stored energy: {normalized_stored_energy:.2f}")
-        print("  Organism genome weights:")
+        # print("  Organism genome weights:")
 
-        for action, sensor_weights in organism.genome.weights.items():
-            print(f"    {action.name}:")
+        # for action, sensor_weights in organism.genome.weights.items():
+        #     print(f"    {action.name}:")
 
-            for sensor, weight in sensor_weights.items():
-                print(f"      {sensor.name:<15}: {weight:6.2f}")
+        #     for sensor, weight in sensor_weights.items():
+        #         print(f"      {sensor.name:<15}: {weight:6.2f}")
 
-        if activations is not None:
-            print("  Organism activations:")
+        # if activations is not None:
+        #     print("  Organism activations:")
 
-            for action, activation in activations.items():
-                print(f"    {action.name:<15}: {activation:6.2f}")                
+        #     for action, activation in activations.items():
+        #         print(f"    {action.name:<15}: {activation:6.2f}")                
 
+    def print_experiment_report(self) -> None:
+        remaining_world_energy = self.total_world_energy()
+
+        consumed_world_energy = (
+            self.initial_world_energy
+            - remaining_world_energy
+        )
+
+        if self.initial_world_energy > 0:
+            percent_consumed = (
+                consumed_world_energy
+                / self.initial_world_energy
+                * 100.0
+            )
+
+            percent_remaining = (
+                remaining_world_energy
+                / self.initial_world_energy
+                * 100.0
+            )
+        else:
+            percent_consumed = 0.0
+            percent_remaining = 0.0
+
+        if self.organisms:
+            status = "TICK LIMIT REACHED"
+        else:
+            status = "POPULATION EXTINCT"
+
+        print()
+        print("========================================")
+        print("EXPERIMENT REPORT")
+        print("========================================")
+        print(f"Status: {status}")
+        print(f"Final tick: {self.tick}")
+        print(
+            f"Initial population: "
+            f"{self.config.initial_organisms}"
+        )
+        print(
+            f"Remaining population: "
+            f"{len(self.organisms)}"
+        )
+        print(
+            f"Initial world energy: "
+            f"{self.initial_world_energy:.2f}"
+        )
+        print(
+            f"Remaining world energy: "
+            f"{remaining_world_energy:.2f}"
+        )
+        print(
+            f"World energy consumed: "
+            f"{consumed_world_energy:.2f}"
+        )
+        print(
+            f"Percent consumed: "
+            f"{percent_consumed:.2f}%"
+        )
+        print(
+            f"Percent left stranded: "
+            f"{percent_remaining:.2f}%"
+        )
+        print("========================================")
     

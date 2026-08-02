@@ -5,9 +5,9 @@ from domain.simulation_config import SimulationConfig
 def main() -> None:
     config = SimulationConfig(
         seed=4,
-        world_width=20,
-        world_height=20,
-        initial_organisms=1,
+        world_width=40,
+        world_height=40,
+        initial_organisms=100,
         initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
@@ -25,8 +25,15 @@ def main() -> None:
 
     # simulation.print_initial_state()
 
-    for _ in range(50):
-        simulation.step()
+    maximum_ticks = 10_000
+
+    while (
+        simulation.organisms
+        and simulation.tick < maximum_ticks
+    ):
+        simulation.step(show_details=True)
+
+    simulation.print_experiment_report()
 
 
 if __name__ == "__main__":
