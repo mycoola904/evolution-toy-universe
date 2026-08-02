@@ -7,7 +7,7 @@ def main() -> None:
         seed=4,
         world_width=20,
         world_height=20,
-        initial_organisms=2,
+        initial_organisms=1,
         initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=10,
@@ -25,7 +25,7 @@ def main() -> None:
 
     # simulation.print_initial_state()
 
-    for _ in range(9):
+    for _ in range(50):
         simulation.step()
 
 

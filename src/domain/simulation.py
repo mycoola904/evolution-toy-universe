@@ -148,6 +148,7 @@ class Simulation:
                 sensed_energy=sensed_energy,
                 activations=activations,
                 normalized_cell_energy=normalized_cell_energy,
+                normalized_stored_energy=normalized_stored_energy,
                 energy_cost=energy_cost,
             )
 
