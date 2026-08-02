@@ -3,6 +3,7 @@ from domain.cell import Cell
 class Organism:
     def __init__(
         self,
+        organism_id: int,
         genome,
         brain,
         energy: float = 100.0,
@@ -10,6 +11,8 @@ class Organism:
         y: int = 0,
         direction: Direction = Direction.NORTH,
     ):
+        self.organism_id = organism_id
+
         self.x = x
         self.y = y
 
@@ -41,7 +44,8 @@ class Organism:
             self.direction = Direction.NORTH
 
     # The organism eats the energy from the cell it is currently on
-    def eat(self, cell: Cell):
+    def eat(self, cell: Cell) -> float:
         energy_eaten = cell.energy
         self.energy += energy_eaten
         cell.energy -= energy_eaten
+        return energy_eaten

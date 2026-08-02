@@ -1,5 +1,6 @@
 from domain.simulation import Simulation
 from domain.simulation_config import SimulationConfig
+from domain.action import Action
 
 
 def main() -> None:
@@ -23,15 +24,29 @@ def main() -> None:
 
     simulation = Simulation.big_bang(config)
 
-    # simulation.print_initial_state()
-
     maximum_ticks = 10_000
+    progress_interval = 10
 
     while (
         simulation.organisms
         and simulation.tick < maximum_ticks
     ):
-        simulation.step(show_details=True)
+        tick_metrics = simulation.step()
+
+        should_print_progress = (
+            tick_metrics.tick == 1
+            or tick_metrics.tick % progress_interval == 0
+            or tick_metrics.ending_population == 0
+        )
+
+        if should_print_progress:
+            print(
+                f"Tick {tick_metrics.tick:<5}"
+                f"| Population {tick_metrics.ending_population:<4} "
+                f"| Deaths {tick_metrics.deaths:<3} "
+                f"| Ate {tick_metrics.energy_eaten:8.2f} "
+                f"| Moves {tick_metrics.action_counts[Action.MOVE_FORWARD]}"
+            )
 
     simulation.print_experiment_report()
 
