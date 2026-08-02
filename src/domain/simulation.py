@@ -119,8 +119,11 @@ class Simulation:
 
             normalized_cell_energy = sensed_energy / self.config.maximum_cell_energy
 
+            normalized_stored_energy = organism.energy / self.config.initial_organism_energy
+
             sensor_values = {
                 Sensor.CELL_ENERGY: normalized_cell_energy,
+                Sensor.STORED_ENERGY: normalized_stored_energy,
                 Sensor.BIAS: 1.0,
             }
 
@@ -199,6 +202,7 @@ class Simulation:
         activations: dict[Action, float] | None = None,
         normalized_cell_energy: float = 0.0,
         energy_cost: float = 0.0,
+        normalized_stored_energy: float = 0.0
     ) -> None:
         print(f"Organism {index}:")
         print(f"  Direction: {organism.direction.name}")
@@ -209,6 +213,7 @@ class Simulation:
         print(f"  Energy: {organism.energy}")
         print(f"  Organism sensed energy: {sensed_energy}")
         print(f"  Normalized sensed energy: {normalized_cell_energy:.2f}")
+        print(f"  Normalized stored energy: {normalized_stored_energy:.2f}")
         print("  Organism genome weights:")
 
         for action, sensor_weights in organism.genome.weights.items():
