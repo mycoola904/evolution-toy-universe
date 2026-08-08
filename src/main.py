@@ -5,7 +5,7 @@ from domain.action import Action
 
 def main() -> None:
     config = SimulationConfig(
-        seed=4,
+        seed=3,
         world_width=40,
         world_height=40,
         initial_organisms=100,
