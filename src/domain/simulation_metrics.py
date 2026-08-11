@@ -16,6 +16,9 @@ class OrganismMetrics:
     organism_id: int
     genome: Genome
     action_counts: dict[Action, int]
+    parent_id: int | None
+    birth_tick: int
+    offspring_count: int = 0
 
     successful_eats: int = 0
     unsuccessful_eats: int = 0
@@ -37,6 +40,7 @@ class TickMetrics:
 
     ending_population: int = 0
     deaths: int = 0
+    births: int = 0
 
     successful_eats: int = 0
     unsuccessful_eats: int = 0
@@ -58,3 +62,8 @@ class SimulationMetrics:
 
     first_successful_eat_tick: int | None = None
     last_successful_eat_tick: int | None = None
+
+    total_births: int = 0
+    first_birth_tick: int | None = None
+    last_birth_tick: int | None = None
+    peak_population: int = 0

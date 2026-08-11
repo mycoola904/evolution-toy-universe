@@ -19,6 +19,19 @@ class World:
         dx, dy = direction.value
         return self.wrap_position(x + dx, y + dy)
 
+    def neighboring_positions(
+        self,
+        x: int,
+        y: int,
+    ) -> list[tuple[int, int]]:
+        positions = [
+            self.wrap_position(x, y - 1),
+            self.wrap_position(x + 1, y),
+            self.wrap_position(x, y + 1),
+            self.wrap_position(x - 1, y),
+        ]
+        return list(dict.fromkeys(positions))
+
     def get_cell(self, x: int, y: int):
         if 0 <= x < self.width and 0 <= y < self.height:
             index = y * self.width + x

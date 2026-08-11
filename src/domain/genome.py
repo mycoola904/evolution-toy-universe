@@ -5,19 +5,21 @@ from domain.sensor import Sensor
 
 class Genome:
     def __init__(
-            self,
-            weights: dict[Action, dict[Sensor, float]],
-                ):
-        
-            self.weights = weights
+        self,
+        weights: dict[Action, dict[Sensor, float]],
+        reproduction_threshold: float,
+    ):
+        self.weights = weights
+        self.reproduction_threshold = reproduction_threshold
 
     @classmethod
     def random_genome(
-            cls,
-            random_generator: random.Random,
-            minimum_weight: float = -1.0,
-            maximum_weight: float = 1.0,
-        ) -> "Genome":
+        cls,
+        random_generator: random.Random,
+        reproduction_threshold: float,
+        minimum_weight: float = -1.0,
+        maximum_weight: float = 1.0,
+    ) -> "Genome":
         weights = {
             action: {
                 sensor: random_generator.uniform(
@@ -29,4 +31,17 @@ class Genome:
             for action in Action
         }
 
-        return cls(weights=weights)
+        return cls(
+            weights=weights,
+            reproduction_threshold=reproduction_threshold,
+        )
+
+    def copy(self) -> "Genome":
+        copied_weights = {
+            action: sensor_weights.copy()
+            for action, sensor_weights in self.weights.items()
+        }
+        return Genome(
+            weights=copied_weights,
+            reproduction_threshold=self.reproduction_threshold,
+        )

@@ -20,6 +20,8 @@ def main() -> None:
         turn_left_energy_cost=0.50,
         turn_right_energy_cost=0.50,
         move_forward_energy_cost=1.00,
+        initial_reproduction_threshold=150.0,
+        reproduction_energy_cost=0.0,
     )
 
     simulation = Simulation.big_bang(config)
@@ -43,6 +45,7 @@ def main() -> None:
             print(
                 f"Tick {tick_metrics.tick:<5}"
                 f"| Population {tick_metrics.ending_population:<4} "
+                f"| Births {tick_metrics.births:<3} "
                 f"| Deaths {tick_metrics.deaths:<3} "
                 f"| Ate {tick_metrics.energy_eaten:8.2f} "
                 f"| Moves {tick_metrics.action_counts[Action.MOVE_FORWARD]}"

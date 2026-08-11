@@ -27,7 +27,7 @@ class Simulation:
         self.random = random.Random(config.seed)
         self.world = world
         self.tick = 0
-        self.organisms = []
+        self.organisms: list[Organism] = []
         self.next_organism_id = 0
         self.metrics = SimulationMetrics(
             organism_metrics={},
@@ -75,6 +75,10 @@ class Simulation:
                 maximum_weight=config.maximum_initial_weight,
             )
 
+        simulation.metrics.peak_population = len(
+            simulation.organisms
+        )
+
         return simulation
 
     def initialize_cell_energy(
@@ -100,25 +104,51 @@ class Simulation:
         return x, y
 
     def create_initial_organism(
-            self, 
-            energy: float, 
-            minimum_weight: float = -1.0, 
-            maximum_weight: float = 1.0
-        ) -> Organism:
-        organism_id = self.next_organism_id
-        self.next_organism_id += 1
-
+        self,
+        energy: float,
+        minimum_weight: float = -1.0,
+        maximum_weight: float = 1.0,
+    ) -> Organism:
         x, y = self.random_position()
         direction = self.random.choice(list(Direction))
 
         genome = Genome.random_genome(
             random_generator=self.random,
+            reproduction_threshold=(
+                self.config.initial_reproduction_threshold
+            ),
             minimum_weight=minimum_weight,
             maximum_weight=maximum_weight,
         )
 
-        brain = NeuralNetwork(genome)
+        organism = self._build_organism(
+            genome=genome,
+            energy=energy,
+            x=x,
+            y=y,
+            direction=direction,
+            parent_id=None,
+            birth_tick=0,
+        )
 
+        self.organisms.append(organism)
+
+        return organism
+
+    def _build_organism(
+        self,
+        genome: Genome,
+        energy: float,
+        x: int,
+        y: int,
+        direction: Direction,
+        parent_id: int | None,
+        birth_tick: int,
+    ) -> Organism:
+        organism_id = self.next_organism_id
+        self.next_organism_id += 1
+
+        brain = NeuralNetwork(genome)
         organism = Organism(
             organism_id=organism_id,
             genome=genome,
@@ -127,14 +157,16 @@ class Simulation:
             x=x,
             y=y,
             direction=direction,
+            parent_id=parent_id,
+            birth_tick=birth_tick,
         )
-
-        self.organisms.append(organism)
 
         self.metrics.organism_metrics[organism_id] = OrganismMetrics(
             organism_id=organism_id,
             genome=genome,
             action_counts=new_action_counts(),
+            parent_id=parent_id,
+            birth_tick=birth_tick,
             peak_energy=energy,
         )
 
@@ -247,18 +279,119 @@ class Simulation:
             else:
                 surviving_organisms.append(organism)
 
-        self.organisms = surviving_organisms
-
-        tick_metrics.ending_population = len(
-            surviving_organisms
-        )
         tick_metrics.deaths = (
             tick_metrics.starting_population
-            - tick_metrics.ending_population
+            - len(surviving_organisms)
+        )
+
+        newborns = self._reproduce(surviving_organisms)
+        tick_metrics.births = len(newborns)
+
+        self.organisms = surviving_organisms + newborns
+        tick_metrics.ending_population = len(self.organisms)
+        self.metrics.peak_population = max(
+            self.metrics.peak_population,
+            tick_metrics.ending_population,
         )
 
         self.metrics.tick_history.append(tick_metrics)
         return tick_metrics
+
+    def _reproduce(
+        self,
+        surviving_organisms: list[Organism],
+    ) -> list[Organism]:
+        occupied_positions = {
+            (organism.x, organism.y)
+            for organism in surviving_organisms
+        }
+
+        eligible_parents = [
+            organism
+            for organism in surviving_organisms
+            if self._can_reproduce(organism)
+        ]
+        if not eligible_parents:
+            return []
+
+        reproduction_order = eligible_parents.copy()
+        self.random.shuffle(reproduction_order)
+
+        newborns: list[Organism] = []
+        for parent in reproduction_order:
+            child = self._try_reproduce(
+                parent=parent,
+                occupied_positions=occupied_positions,
+            )
+            if child is not None:
+                newborns.append(child)
+
+        return newborns
+
+    def _can_reproduce(self, parent: Organism) -> bool:
+        return (
+            parent.energy >= parent.genome.reproduction_threshold
+            and parent.energy >= self.config.reproduction_energy_cost
+        )
+
+    def _try_reproduce(
+        self,
+        parent: Organism,
+        occupied_positions: set[tuple[int, int]],
+    ) -> Organism | None:
+        if not self._can_reproduce(parent):
+            return None
+
+        available_positions = [
+            position
+            for position in self.world.neighboring_positions(
+                parent.x,
+                parent.y,
+            )
+            if position not in occupied_positions
+        ]
+        if not available_positions:
+            return None
+
+        child_x, child_y = self.random.choice(
+            available_positions
+        )
+        parent_energy_before = parent.energy
+        shared_energy = (
+            parent_energy_before
+            - self.config.reproduction_energy_cost
+        ) / 2.0
+        parent.energy = shared_energy
+
+        child = self._build_organism(
+            genome=parent.genome.copy(),
+            energy=shared_energy,
+            x=child_x,
+            y=child_y,
+            direction=parent.direction,
+            parent_id=parent.organism_id,
+            birth_tick=self.tick,
+        )
+        occupied_positions.add((child_x, child_y))
+
+        parent_metrics = self.metrics.organism_metrics[
+            parent.organism_id
+        ]
+        parent_metrics.offspring_count += 1
+
+        self.metrics.total_births += 1
+        if self.metrics.first_birth_tick is None:
+            self.metrics.first_birth_tick = self.tick
+        self.metrics.last_birth_tick = self.tick
+
+        self._assert_close(
+            parent.energy + child.energy,
+            parent_energy_before
+            - self.config.reproduction_energy_cost,
+            "reproduction energy conservation",
+        )
+
+        return child
 
     def execute_action(
         self,
@@ -362,6 +495,25 @@ class Simulation:
             for metrics in organism_metrics
             if metrics.action_counts[Action.MOVE_FORWARD] > 0
         ]
+        organisms_that_reproduced = [
+            metrics
+            for metrics in organism_metrics
+            if metrics.offspring_count > 0
+        ]
+
+        most_offspring = max(
+            (
+                metrics.offspring_count
+                for metrics in organism_metrics
+            ),
+            default=0,
+        )
+        most_offspring_ids = sorted(
+            metrics.organism_id
+            for metrics in organism_metrics
+            if metrics.offspring_count == most_offspring
+            and most_offspring > 0
+        )
 
         most_moves = max(
             (
@@ -570,6 +722,36 @@ class Simulation:
                 "NONE",
             )
 
+        self._print_report_section("REPRODUCTION RESULTS")
+        self._print_report_kv(
+            "Total births",
+            self._format_count(self.metrics.total_births),
+        )
+        self._print_report_kv(
+            "Peak population",
+            self._format_count(self.metrics.peak_population),
+        )
+        self._print_report_kv(
+            "Organisms that reproduced",
+            self._format_count(len(organisms_that_reproduced)),
+        )
+        self._print_report_kv(
+            "First birth tick",
+            self._format_tick(self.metrics.first_birth_tick),
+        )
+        self._print_report_kv(
+            "Last birth tick",
+            self._format_tick(self.metrics.last_birth_tick),
+        )
+        self._print_report_kv(
+            "Most offspring by one organism",
+            self._format_count(most_offspring),
+        )
+        self._print_report_kv(
+            "Parent ID(s) with most offspring",
+            self._format_id_list(most_offspring_ids),
+        )
+
         self._print_report_section("SURVIVAL RESULTS")
         self._print_report_kv(
             "Last death tick",
@@ -751,6 +933,12 @@ class Simulation:
         )
 
     def _print_genome(self, genome: Genome) -> None:
+        self._print_report_kv(
+            "Reproduction threshold",
+            f"{genome.reproduction_threshold:.2f}",
+        )
+        print()
+
         for action in Action:
             print(f"{action.name}:")
             sensor_weights = genome.weights[action]
@@ -861,6 +1049,83 @@ class Simulation:
             per_organism_action_counts
             == self.metrics.action_counts
         ), "per-organism action counts must equal experiment action counts"
+
+        for tick_metrics in self.metrics.tick_history:
+            assert (
+                tick_metrics.ending_population
+                == tick_metrics.starting_population
+                - tick_metrics.deaths
+                + tick_metrics.births
+            ), (
+                "ending population must equal starting population "
+                "minus deaths plus births"
+            )
+
+        assert (
+            sum(
+                tick_metrics.births
+                for tick_metrics in self.metrics.tick_history
+            )
+            == self.metrics.total_births
+        ), "per-tick births must equal total births"
+
+        assert (
+            self.metrics.total_births
+            == self.next_organism_id
+            - self.config.initial_organisms
+        ), "total births must equal organisms created after the Big Bang"
+
+        assert (
+            sum(
+                metrics.offspring_count
+                for metrics in self.metrics.organism_metrics.values()
+            )
+            == self.metrics.total_births
+        ), "per-organism offspring counts must equal total births"
+
+        for organism_id, metrics in (
+            self.metrics.organism_metrics.items()
+        ):
+            if organism_id < self.config.initial_organisms:
+                assert metrics.parent_id is None, (
+                    "initial organisms must not have a parent"
+                )
+                assert metrics.birth_tick == 0, (
+                    "initial organisms must have birth_tick 0"
+                )
+            else:
+                assert metrics.parent_id is not None, (
+                    "offspring must have a parent"
+                )
+                assert (
+                    metrics.parent_id
+                    in self.metrics.organism_metrics
+                ), "offspring parent must reference a known organism"
+                assert metrics.birth_tick >= 1, (
+                    "offspring birth_tick must be at least 1"
+                )
+
+        if self.metrics.total_births == 0:
+            assert self.metrics.first_birth_tick is None
+            assert self.metrics.last_birth_tick is None
+        else:
+            assert self.metrics.first_birth_tick is not None
+            assert self.metrics.last_birth_tick is not None
+            assert (
+                self.metrics.first_birth_tick
+                <= self.metrics.last_birth_tick
+            )
+
+        observed_populations = [
+            self.config.initial_organisms,
+            *(
+                tick_metrics.ending_population
+                for tick_metrics in self.metrics.tick_history
+            ),
+        ]
+        assert self.metrics.peak_population == max(
+            observed_populations
+        ), "peak population must match observed populations"
 
         if not self.organisms:
             assert all(

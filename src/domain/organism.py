@@ -1,5 +1,7 @@
 from domain.direction import Direction
 from domain.cell import Cell
+
+
 class Organism:
     def __init__(
         self,
@@ -10,8 +12,12 @@ class Organism:
         x: int = 0,
         y: int = 0,
         direction: Direction = Direction.NORTH,
+        parent_id: int | None = None,
+        birth_tick: int = 0,
     ):
         self.organism_id = organism_id
+        self.parent_id = parent_id
+        self.birth_tick = birth_tick
 
         self.x = x
         self.y = y
