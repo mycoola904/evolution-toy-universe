@@ -1,6 +1,19 @@
 from domain.simulation import Simulation
 from domain.simulation_config import SimulationConfig
 from domain.action import Action
+from domain.simulation_metrics import TickMetrics
+
+
+def should_print_progress(
+    tick_metrics: TickMetrics,
+    progress_interval: int,
+) -> bool:
+    return (
+        tick_metrics.tick == 1
+        or tick_metrics.tick % progress_interval == 0
+        or tick_metrics.births > 0
+        or tick_metrics.ending_population == 0
+    )
 
 
 def main() -> None:
@@ -35,13 +48,7 @@ def main() -> None:
     ):
         tick_metrics = simulation.step()
 
-        should_print_progress = (
-            tick_metrics.tick == 1
-            or tick_metrics.tick % progress_interval == 0
-            or tick_metrics.ending_population == 0
-        )
-
-        if should_print_progress:
+        if should_print_progress(tick_metrics, progress_interval):
             print(
                 f"Tick {tick_metrics.tick:<5}"
                 f"| Population {tick_metrics.ending_population:<4} "

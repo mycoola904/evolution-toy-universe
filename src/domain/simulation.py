@@ -331,7 +331,10 @@ class Simulation:
     def _can_reproduce(self, parent: Organism) -> bool:
         return (
             parent.energy >= parent.genome.reproduction_threshold
-            and parent.energy >= self.config.reproduction_energy_cost
+            and (
+                parent.energy
+                - self.config.reproduction_energy_cost
+            ) > 0.0
         )
 
     def _try_reproduce(
@@ -530,9 +533,9 @@ class Simulation:
             and most_moves > 0
         )
 
-        longest_survival_tick = max(
+        longest_longevity = max(
             (
-                self._survival_tick(metrics)
+                self._longevity(metrics)
                 for metrics in organism_metrics
             ),
             default=0,
@@ -541,8 +544,7 @@ class Simulation:
         longest_surviving_metrics = [
             metrics
             for metrics in organism_metrics
-            if self._survival_tick(metrics)
-            == longest_survival_tick
+            if self._longevity(metrics) == longest_longevity
         ]
         longest_surviving_ids = sorted(
             metrics.organism_id
@@ -758,7 +760,11 @@ class Simulation:
             self._format_tick(latest_death_tick),
         )
         self._print_report_kv(
-            "Longest-surviving organism IDs",
+            "Longest longevity (ticks)",
+            self._format_count(longest_longevity),
+        )
+        self._print_report_kv(
+            "Longest-longevity organism IDs",
             self._format_id_list(longest_surviving_ids),
         )
         self._print_report_kv(
@@ -793,7 +799,7 @@ class Simulation:
                 str(representative_last_survivor.organism_id),
             )
             self._print_report_kv(
-                "Longest-surviving IDs",
+                "Longest-longevity IDs",
                 self._format_id_list(longest_surviving_ids),
             )
             self._print_genome(
@@ -801,13 +807,15 @@ class Simulation:
             )
         self._print_report_footer()
 
-    def _survival_tick(
+    def _longevity(
         self,
         metrics: OrganismMetrics,
     ) -> int:
         if metrics.death_tick is None:
-            return self.tick
-        return metrics.death_tick
+            end_tick = self.tick
+        else:
+            end_tick = metrics.death_tick
+        return end_tick - metrics.birth_tick
 
     def _best_by_value(
         self,
@@ -835,7 +843,7 @@ class Simulation:
         return max(
             candidates,
             key=lambda metrics: (
-                self._survival_tick(metrics),
+                self._longevity(metrics),
                 metrics.energy_eaten,
                 metrics.action_counts[Action.MOVE_FORWARD],
                 -metrics.organism_id,
@@ -900,8 +908,18 @@ class Simulation:
             indent=2,
         )
         self._print_report_kv(
+            "Birth tick",
+            self._format_tick(metrics.birth_tick),
+            indent=2,
+        )
+        self._print_report_kv(
             "Death tick",
             self._format_tick(metrics.death_tick),
+            indent=2,
+        )
+        self._print_report_kv(
+            "Longevity (ticks)",
+            self._format_count(self._longevity(metrics)),
             indent=2,
         )
         self._print_report_kv(

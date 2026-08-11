@@ -113,6 +113,21 @@ def test_parent_that_cannot_afford_cost_keeps_energy(config_factory):
     assert simulation.metrics.total_births == 0
 
 
+def test_reproduction_cost_cannot_leave_zero_energy(config_factory):
+    simulation = Simulation.big_bang(
+        config_factory(reproduction_energy_cost=100.0)
+    )
+    zero_world_energy(simulation)
+    parent = simulation.organisms[0]
+    force_action(parent, Action.WAIT)
+
+    tick_metrics = simulation.step()
+
+    assert tick_metrics.births == 0
+    assert parent.energy == 100.0
+    assert simulation.metrics.total_births == 0
+
+
 def test_exact_post_metabolism_threshold_reproduces(config_factory):
     simulation = Simulation.big_bang(
         config_factory(
@@ -164,6 +179,59 @@ def test_one_by_one_world_has_no_birth_space(config_factory):
     assert tick_metrics.births == 0
     assert tick_metrics.ending_population == 1
     assert parent.energy == 100.0
+
+
+def test_newborn_cannot_reproduce_on_its_birth_tick(config_factory):
+    simulation = Simulation.big_bang(
+        config_factory(initial_reproduction_threshold=40.0)
+    )
+    zero_world_energy(simulation)
+    parent = simulation.organisms[0]
+    force_action(parent, Action.WAIT)
+
+    tick_metrics = simulation.step()
+
+    child = next(
+        organism
+        for organism in simulation.organisms
+        if organism.parent_id == parent.organism_id
+    )
+    child_metrics = simulation.metrics.organism_metrics[
+        child.organism_id
+    ]
+
+    assert parent.energy == child.energy == 50.0
+    assert child.energy >= child.genome.reproduction_threshold
+    assert tick_metrics.births == 1
+    assert tick_metrics.ending_population == 2
+    assert simulation.metrics.total_births == 1
+    assert child_metrics.offspring_count == 0
+
+
+def test_longevity_uses_birth_tick(config_factory):
+    simulation = Simulation.big_bang(config_factory())
+    initial_metrics = simulation.metrics.organism_metrics[0]
+    initial_metrics.death_tick = 5
+
+    simulation.tick = 10
+    child = simulation._build_organism(
+        genome=simulation.organisms[0].genome.copy(),
+        energy=50.0,
+        x=1,
+        y=1,
+        direction=simulation.organisms[0].direction,
+        parent_id=0,
+        birth_tick=8,
+    )
+    child_metrics = simulation.metrics.organism_metrics[
+        child.organism_id
+    ]
+
+    assert simulation._longevity(initial_metrics) == 5
+    assert simulation._longevity(child_metrics) == 2
+    assert simulation._representative_from_metrics(
+        [initial_metrics, child_metrics]
+    ) is initial_metrics
 
 
 def test_newborn_position_is_reserved_immediately(config_factory):
