@@ -51,6 +51,24 @@ Provide a different seed with `--seed`:
 py src/main.py --seed 123
 ```
 
+Completed experiments are saved automatically to
+`data/experiments.db`. Choose another SQLite database with `--database`:
+
+```powershell
+py src/main.py --seed 123 --database data/alternate-experiments.db
+```
+
+Run without creating or writing a database with `--no-persist`:
+
+```powershell
+py src/main.py --seed 123 --no-persist
+```
+
+Each saved run includes its complete configuration, termination reason, Git
+commit and working-tree state when available, and one lifetime result for every
+organism created during the experiment. SQLite write failures cause the command
+to fail so an unsaved experiment is not reported as successfully recorded.
+
 ## License
 
 See the LICENSE file for licensing information.

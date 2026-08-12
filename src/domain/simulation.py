@@ -167,6 +167,8 @@ class Simulation:
             action_counts=new_action_counts(),
             parent_id=parent_id,
             birth_tick=birth_tick,
+            initial_energy=energy,
+            final_energy=energy,
             peak_energy=energy,
         )
 
@@ -279,6 +281,8 @@ class Simulation:
             else:
                 surviving_organisms.append(organism)
 
+            organism_metrics.final_energy = organism.energy
+
         tick_metrics.deaths = (
             tick_metrics.starting_population
             - len(surviving_organisms)
@@ -380,6 +384,7 @@ class Simulation:
         parent_metrics = self.metrics.organism_metrics[
             parent.organism_id
         ]
+        parent_metrics.final_energy = parent.energy
         parent_metrics.offspring_count += 1
 
         self.metrics.total_births += 1

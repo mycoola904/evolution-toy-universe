@@ -1,0 +1,1 @@
+"""Completed experiment result snapshots."""

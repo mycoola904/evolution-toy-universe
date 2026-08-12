@@ -1,10 +1,20 @@
 import argparse
 from collections.abc import Sequence
+from datetime import datetime, timezone
+from pathlib import Path
 
 from domain.simulation import Simulation
 from domain.simulation_config import SimulationConfig
 from domain.action import Action
 from domain.simulation_metrics import TickMetrics
+from experiments.results import build_experiment_result
+from persistence.database import (
+    DEFAULT_DATABASE_PATH,
+    PROJECT_ROOT,
+    ExperimentDatabase,
+)
+from persistence.experiment_recorder import ExperimentRecorder
+from persistence.git_info import GitInfo, get_git_info
 
 
 DEFAULT_SEED = 4
@@ -20,6 +30,20 @@ def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_SEED,
         help=f"random seed for the experiment (default: {DEFAULT_SEED})",
     )
+    parser.add_argument(
+        "--database",
+        type=Path,
+        default=DEFAULT_DATABASE_PATH,
+        help=(
+            "SQLite experiment database path "
+            f"(default: {DEFAULT_DATABASE_PATH})"
+        ),
+    )
+    parser.add_argument(
+        "--no-persist",
+        action="store_true",
+        help="run without creating or writing an experiment database",
+    )
     return parser.parse_args(args)
 
 
@@ -33,6 +57,23 @@ def should_print_progress(
         or tick_metrics.births > 0
         or tick_metrics.ending_population == 0
     )
+
+
+def persist_completed_experiment(
+    simulation: Simulation,
+    started_at: datetime,
+    git_info: GitInfo,
+    database_path: Path,
+) -> int:
+    experiment_result = build_experiment_result(
+        simulation=simulation,
+        started_at=started_at,
+        git_commit=git_info.commit_hash,
+        git_dirty=git_info.dirty,
+    )
+    database = ExperimentDatabase(database_path)
+    database.initialize()
+    return ExperimentRecorder(database).save(experiment_result)
 
 
 def main(args: Sequence[str] | None = None) -> None:
@@ -58,6 +99,12 @@ def main(args: Sequence[str] | None = None) -> None:
         reproduction_energy_cost=0.0,
     )
 
+    started_at = None
+    git_info = None
+    if not options.no_persist:
+        started_at = datetime.now(timezone.utc)
+        git_info = get_git_info(PROJECT_ROOT)
+
     simulation = Simulation.big_bang(config)
 
     maximum_ticks = 10_000
@@ -80,6 +127,20 @@ def main(args: Sequence[str] | None = None) -> None:
             )
 
     simulation.print_experiment_report()
+
+    if not options.no_persist:
+        if started_at is None or git_info is None:
+            raise RuntimeError("Missing experiment provenance")
+        run_id = persist_completed_experiment(
+            simulation=simulation,
+            started_at=started_at,
+            git_info=git_info,
+            database_path=options.database,
+        )
+        print(
+            f"Saved experiment run {run_id} to "
+            f"{options.database.resolve()}"
+        )
 
 
 if __name__ == "__main__":

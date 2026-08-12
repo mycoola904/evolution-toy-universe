@@ -1,4 +1,5 @@
 import random
+import json
 
 from domain.action import Action
 from domain.genome import Genome
@@ -38,4 +39,29 @@ def test_genome_copy_is_deep_for_nested_weights():
 
     child.weights[Action.WAIT][Sensor.BIAS] = 999.0
     assert parent.weights[Action.WAIT][Sensor.BIAS] != 999.0
+
+
+def test_genome_to_dict_is_complete_and_json_serializable():
+    genome = Genome(
+        weights={
+            action: {
+                sensor: float(action_index + sensor_index)
+                for sensor_index, sensor in enumerate(Sensor)
+            }
+            for action_index, action in enumerate(Action)
+        },
+        reproduction_threshold=150.0,
+    )
+
+    genome_data = genome.to_dict()
+
+    assert genome_data["reproduction_threshold"] == 150.0
+    assert set(genome_data["weights"]) == {
+        action.name for action in Action
+    }
+    for action in Action:
+        assert set(genome_data["weights"][action.name]) == {
+            sensor.name for sensor in Sensor
+        }
+    assert json.loads(json.dumps(genome_data)) == genome_data
 

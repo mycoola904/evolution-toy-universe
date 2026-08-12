@@ -18,6 +18,8 @@ class OrganismMetrics:
     action_counts: dict[Action, int]
     parent_id: int | None
     birth_tick: int
+    initial_energy: float
+    final_energy: float
     offspring_count: int = 0
 
     successful_eats: int = 0

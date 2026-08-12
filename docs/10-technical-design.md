@@ -956,45 +956,63 @@ Routine organism actions should not be logged individually unless detailed traci
 
 ## 11. Persistence and Data Formats
 
-Version 1 persistence should remain simple and file based unless a database becomes clearly necessary.
+Version 1 uses Python's built-in `sqlite3` module and a local SQLite database at
+`data/experiments.db`. SQLite records completed experiments; it is not the
+source of live simulation state and is never accessed by domain classes.
 
-### 11.1 Configuration Files
+The application boundary converts a completed simulation into plain result
+snapshots and passes them to the persistence layer. Saving one run and all of
+its organism results occurs in one transaction so a failure cannot leave a
+partial experiment.
 
-Experiment configurations should use a human-readable format.
+### 11.1 Run Provenance and Configuration
 
-JSON is a suitable initial choice because it is:
+Each run stores its seed, world dimensions, population counts, completed tick,
+termination reason, UTC start time, Git commit, Git dirty state, and complete
+validated configuration as deterministic JSON. Git fields are nullable when
+provenance cannot be obtained; an unknown state is not treated as clean.
 
-* supported by the Python standard library,
-* easy to validate,
-* widely understood,
-* and suitable for reproducible experiment files.
+### 11.2 Organism Results
 
-Another format may be selected if it provides a clear advantage.
+Every organism created during a run receives one lifetime result. Results
+include the run-local organism and parent IDs, birth and death ticks, lifespan,
+initial/final/peak energy, environmental energy consumed, movement distance,
+and genome JSON. Dead organisms remain available through their metrics records
+after being removed from the living population.
 
-### 11.2 Metrics Export
+Per-tick and cell-by-cell persistence are intentionally excluded from Version
+1. Derived leaderboards and summaries should be calculated with SQL rather than
+duplicated in summary tables.
 
-Metrics history should be exportable in a format suitable for later analysis.
+### 11.3 Command-Line Behavior
 
-CSV is appropriate for tabular tick metrics.
+Normal command-line runs persist automatically. `--database PATH` selects a
+different database, and `--no-persist` disables all database and Git-provenance
+work. Database initialization and write failures are fatal.
 
-JSON may be used for structured run summaries or records that do not fit naturally into rows and columns.
+### 11.4 Verification Queries
 
-### 11.3 Run Summary
+Recent runs can be inspected with:
 
-A completed run should be able to produce a summary containing:
+```sql
+SELECT id, started_at, seed, ticks_completed, termination_reason,
+       git_commit, git_dirty
+FROM simulation_runs
+ORDER BY id DESC
+LIMIT 10;
+```
 
-* experiment name or identifier,
-* seed,
-* configuration,
-* start and end tick,
-* stop reason,
-* final population,
-* births,
-* deaths,
-* energy totals,
-* and other selected summary metrics.
+Organism leaderboards can be calculated directly from lifetime results:
 
-### 11.4 Universe Save and Resume
+```sql
+SELECT simulation_run_id, organism_id, lifespan,
+       energy_consumed, distance_moved, peak_energy
+FROM organism_results
+ORDER BY lifespan DESC
+LIMIT 10;
+```
+
+### 11.5 Universe Save and Resume
 
 Full save-and-resume support may require serialization of:
 
@@ -1012,9 +1030,11 @@ Unless a strong Version 1 need is identified, the initial implementation may sup
 
 The architecture should not intentionally prevent save-and-resume from being added later.
 
-### 11.5 Data Versioning
+### 11.6 Data Versioning
 
-Saved data should contain a format or schema version.
+Schema versioning and a migrations framework are deferred from the initial
+two-table implementation. Before the schema changes, the project should add an
+explicit version and choose whether to migrate, support, or reject older data.
 
 If data structures change in future versions, the application should either:
 
