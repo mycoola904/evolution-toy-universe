@@ -69,6 +69,10 @@ def test_forced_reproduction_tracks_lineage_and_delays_child_action(
     assert child_metrics.birth_tick == 1
     assert parent_metrics.birth_tick == 0
     assert parent_metrics.offspring_count == 1
+    assert parent_metrics.initial_energy == 100.0
+    assert parent_metrics.final_energy == 50.0
+    assert child_metrics.initial_energy == 50.0
+    assert child_metrics.final_energy == 50.0
     assert child.direction == parent_direction
     assert parent.energy == child.energy == 50.0
     assert child.genome.weights == parent.genome.weights

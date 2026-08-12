@@ -45,3 +45,15 @@ class Genome:
             weights=copied_weights,
             reproduction_threshold=self.reproduction_threshold,
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "reproduction_threshold": self.reproduction_threshold,
+            "weights": {
+                action.name: {
+                    sensor.name: weight
+                    for sensor, weight in sensor_weights.items()
+                }
+                for action, sensor_weights in self.weights.items()
+            },
+        }
