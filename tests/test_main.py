@@ -1,5 +1,13 @@
 from domain.simulation_metrics import TickMetrics, new_action_counts
-from main import should_print_progress
+from main import DEFAULT_SEED, parse_args, should_print_progress
+
+
+def test_seed_defaults_to_current_experiment_seed():
+    assert parse_args([]).seed == DEFAULT_SEED
+
+
+def test_seed_can_be_set_from_command_line():
+    assert parse_args(["--seed", "123"]).seed == 123
 
 
 def make_tick_metrics(**overrides) -> TickMetrics:

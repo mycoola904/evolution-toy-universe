@@ -1,7 +1,26 @@
+import argparse
+from collections.abc import Sequence
+
 from domain.simulation import Simulation
 from domain.simulation_config import SimulationConfig
 from domain.action import Action
 from domain.simulation_metrics import TickMetrics
+
+
+DEFAULT_SEED = 4
+
+
+def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Run an Evolution Toy Universe experiment.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help=f"random seed for the experiment (default: {DEFAULT_SEED})",
+    )
+    return parser.parse_args(args)
 
 
 def should_print_progress(
@@ -16,9 +35,11 @@ def should_print_progress(
     )
 
 
-def main() -> None:
+def main(args: Sequence[str] | None = None) -> None:
+    options = parse_args(args)
+
     config = SimulationConfig(
-        seed=4,
+        seed=options.seed,
         world_width=40,
         world_height=40,
         initial_organisms=100,

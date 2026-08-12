@@ -1,0 +1,155 @@
+Tick 1    | Population 100  | Births 0   | Deaths 0   | Ate   121.00 | Moves 10
+Tick 10   | Population 100  | Births 0   | Deaths 0   | Ate     0.00 | Moves 11
+Tick 20   | Population 100  | Births 0   | Deaths 0   | Ate     7.00 | Moves 10
+Tick 30   | Population 100  | Births 0   | Deaths 0   | Ate    26.00 | Moves 5
+Tick 40   | Population 100  | Births 0   | Deaths 0   | Ate    10.00 | Moves 6
+Tick 50   | Population 98   | Births 0   | Deaths 2   | Ate     5.00 | Moves 8
+Tick 53   | Population 99   | Births 1   | Deaths 0   | Ate     8.00 | Moves 7
+Tick 60   | Population 96   | Births 0   | Deaths 0   | Ate     9.00 | Moves 5
+Tick 70   | Population 58   | Births 0   | Deaths 2   | Ate     0.00 | Moves 5
+Tick 80   | Population 47   | Births 0   | Deaths 4   | Ate     3.00 | Moves 5
+Tick 90   | Population 30   | Births 0   | Deaths 0   | Ate     0.00 | Moves 5
+Tick 100  | Population 6    | Births 0   | Deaths 15  | Ate     0.00 | Moves 3
+Tick 110  | Population 6    | Births 0   | Deaths 0   | Ate     0.00 | Moves 4
+Tick 120  | Population 6    | Births 0   | Deaths 0   | Ate     0.00 | Moves 3
+Tick 130  | Population 3    | Births 0   | Deaths 0   | Ate     5.00 | Moves 1
+Tick 140  | Population 3    | Births 0   | Deaths 0   | Ate     5.00 | Moves 0
+Tick 150  | Population 2    | Births 0   | Deaths 1   | Ate     2.00 | Moves 0
+Tick 160  | Population 1    | Births 0   | Deaths 0   | Ate     0.00 | Moves 0
+Tick 161  | Population 0    | Births 0   | Deaths 1   | Ate     0.00 | Moves 0
+
+============================================================
+EXPERIMENT REPORT
+============================================================
+------------------------------------------------------------
+EXPERIMENT SUMMARY
+Status                                       POPULATION EXTINCT
+Seed                                         4
+World dimensions                             40x40
+Final tick                                   161
+Initial population                           100
+Remaining population                         0
+------------------------------------------------------------
+ENVIRONMENTAL ENERGY
+Initial world energy                         8010.00
+Remaining world energy                       7101.00
+World energy consumed                        909.00
+Percent consumed                             11.35%
+Percent left stranded                        88.65%
+Energy eaten on tick 1                       121.00
+Energy eaten after tick 1                    788.00
+Percent of consumed energy eaten after tick 1 86.69%
+First successful EAT tick                    1
+Last successful EAT tick                     150
+------------------------------------------------------------
+ACTION TOTALS
+Action             Count    Percent
+WAIT               2,873     34.80%
+EAT                1,529     18.52%
+MOVE_FORWARD         766      9.28%
+TURN_LEFT          1,546     18.73%
+TURN_RIGHT         1,542     18.68%
+------------------------------------------------------------
+EATING RESULTS
+Total EAT attempts                           1,529
+Successful EAT actions                       136
+Unsuccessful EAT actions                     1,393
+EAT success rate                             8.89%
+Organisms that successfully ate              25
+Total energy eaten                           909.00
+------------------------------------------------------------
+MOVEMENT RESULTS
+Total MOVE_FORWARD actions                   766
+Organisms that moved at least once           27
+Most moves by one organism                   116
+Organism ID with the most moves              83
+Organism IDs tied for most moves             83
+------------------------------------------------------------
+REPRODUCTION RESULTS
+Total births                                 1
+Peak population                              100
+Organisms that reproduced                    1
+First birth tick                             53
+Last birth tick                              53
+Most offspring by one organism               1
+Parent ID(s) with most offspring             32
+------------------------------------------------------------
+SURVIVAL RESULTS
+Last death tick                              161
+Longest longevity (ticks)                    161
+Longest-longevity organism IDs               63
+Number tied for longest survival             1
+------------------------------------------------------------
+NOTABLE ORGANISMS
+Longest-lived organism:
+  Organism ID                                  63
+  Birth tick                                   0
+  Death tick                                   161
+  Longevity (ticks)                            161
+  Successful eats                              34
+  Energy eaten                                 176.00
+  Moves                                        100
+  Peak energy                                  117.75
+  Final action                                 EAT
+Largest energy consumer:
+  Organism ID                                  63
+  Birth tick                                   0
+  Death tick                                   161
+  Longevity (ticks)                            161
+  Successful eats                              34
+  Energy eaten                                 176.00
+  Moves                                        100
+  Peak energy                                  117.75
+  Final action                                 EAT
+Most mobile organism:
+  Organism ID                                  83
+  Birth tick                                   0
+  Death tick                                   150
+  Longevity (ticks)                            150
+  Successful eats                              25
+  Energy eaten                                 174.00
+  Moves                                        116
+  Peak energy                                  100.00
+  Final action                                 EAT
+Highest peak-energy organism:
+  Organism ID                                  32
+  Birth tick                                   0
+  Death tick                                   127
+  Longevity (ticks)                            127
+  Successful eats                              18
+  Energy eaten                                 143.00
+  Moves                                        37
+  Peak energy                                  151.75
+  Final action                                 WAIT
+------------------------------------------------------------
+REPRESENTATIVE LAST-SURVIVOR GENOME
+Representative organism ID                   63
+Longest-longevity IDs                        63
+Reproduction threshold                       150.00
+
+WAIT:
+  CELL_ENERGY    :  -0.20
+  STORED_ENERGY  :  -0.32
+  BIAS           :  -0.61
+
+EAT:
+  CELL_ENERGY    :   0.25
+  STORED_ENERGY  :  -0.15
+  BIAS           :   0.90
+
+MOVE_FORWARD:
+  CELL_ENERGY    :  -0.10
+  STORED_ENERGY  :   0.14
+  BIAS           :   0.80
+
+TURN_LEFT:
+  CELL_ENERGY    :  -0.99
+  STORED_ENERGY  :  -0.37
+  BIAS           :   0.81
+
+TURN_RIGHT:
+  CELL_ENERGY    :   0.31
+  STORED_ENERGY  :   0.68
+  BIAS           :  -0.87
+
+============================================================

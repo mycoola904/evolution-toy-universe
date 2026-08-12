@@ -37,6 +37,20 @@ The design phase is complete.
 
 Development is now beginning on the Version 1 implementation.
 
+## Running an Experiment
+
+Run the simulation with the default seed (`4`):
+
+```powershell
+py src/main.py
+```
+
+Provide a different seed with `--seed`:
+
+```powershell
+py src/main.py --seed 123
+```
+
 ## License
 
 See the LICENSE file for licensing information.
