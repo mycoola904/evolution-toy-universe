@@ -40,3 +40,29 @@ def test_reproduction_configuration_defaults():
 
     assert config.initial_reproduction_threshold == 150.0
     assert config.reproduction_energy_cost == 0.0
+    assert config.mutation_rate == 0.05
+    assert config.mutation_amount == 0.10
+
+
+@pytest.mark.parametrize(
+    "mutation_rate",
+    [-0.01, 1.01, math.inf, -math.inf, math.nan],
+)
+def test_mutation_rate_must_be_finite_probability(
+    config_factory,
+    mutation_rate,
+):
+    with pytest.raises(ValueError, match="mutation_rate"):
+        config_factory(mutation_rate=mutation_rate)
+
+
+@pytest.mark.parametrize(
+    "mutation_amount",
+    [-0.01, math.inf, -math.inf, math.nan],
+)
+def test_mutation_amount_must_be_finite_and_nonnegative(
+    config_factory,
+    mutation_amount,
+):
+    with pytest.raises(ValueError, match="mutation_amount"):
+        config_factory(mutation_amount=mutation_amount)

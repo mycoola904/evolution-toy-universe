@@ -371,7 +371,11 @@ class Simulation:
         parent.energy = shared_energy
 
         child = self._build_organism(
-            genome=parent.genome.copy(),
+            genome=parent.genome.mutated_copy(
+                random_generator=self.random,
+                mutation_rate=self.config.mutation_rate,
+                mutation_amount=self.config.mutation_amount,
+            ),
             energy=shared_energy,
             x=child_x,
             y=child_y,

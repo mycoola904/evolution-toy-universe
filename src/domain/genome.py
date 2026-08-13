@@ -57,3 +57,30 @@ class Genome:
                 for action, sensor_weights in self.weights.items()
             },
         }
+
+    def mutated_copy(
+        self,
+        random_generator: random.Random,
+        mutation_rate: float,
+        mutation_amount: float,
+    ) -> "Genome":
+        mutated_weights = {
+            action: {
+                sensor: (
+                    weight
+                    + random_generator.uniform(
+                        -mutation_amount,
+                        mutation_amount,
+                    )
+                    if random_generator.random() < mutation_rate
+                    else weight
+                )
+                for sensor, weight in sensor_weights.items()
+            }
+            for action, sensor_weights in self.weights.items()
+        }
+
+        return Genome(
+            weights=mutated_weights,
+            reproduction_threshold=self.reproduction_threshold,
+        )

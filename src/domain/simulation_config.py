@@ -21,6 +21,8 @@ class SimulationConfig:
     move_forward_energy_cost: float = 1.00
     initial_reproduction_threshold: float = 150.0
     reproduction_energy_cost: float = 0.0
+    mutation_rate: float = 0.05
+    mutation_amount: float = 0.10
 
     def __post_init__(self) -> None:
         reproduction_values = {
@@ -35,3 +37,16 @@ class SimulationConfig:
                 raise ValueError(
                     f"{name} must be finite and nonnegative"
                 )
+
+        if not (0.0 <= self.mutation_rate <= 1.0):
+            raise ValueError(
+                "mutation_rate must be between 0.0 and 1.0"
+            )
+
+        if (
+            not math.isfinite(self.mutation_amount)
+            or self.mutation_amount < 0.0
+        ):
+            raise ValueError(
+                "mutation_amount must be finite and nonnegative"
+            )
