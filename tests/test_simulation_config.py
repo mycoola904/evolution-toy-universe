@@ -40,7 +40,7 @@ def test_reproduction_configuration_defaults():
 
     assert config.initial_reproduction_threshold == 150.0
     assert config.reproduction_energy_cost == 0.0
-    assert config.mutation_rate == 0.05
+    assert config.mutation_rate == 0.01
     assert config.mutation_amount == 0.10
 
 
