@@ -21,7 +21,7 @@ class SimulationConfig:
     move_forward_energy_cost: float = 1.00
     initial_reproduction_threshold: float = 150.0
     reproduction_energy_cost: float = 0.0
-    mutation_rate: float = 0.05
+    mutation_rate: float = 0.01
     mutation_amount: float = 0.10
 
     def __post_init__(self) -> None:
