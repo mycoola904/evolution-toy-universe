@@ -61,6 +61,7 @@ class ExperimentRecorder:
                     organism_id,
                     parent_organism_id,
                     birth_tick,
+                    mutated_weight_count,
                     death_tick,
                     lifespan,
                     initial_energy,
@@ -69,7 +70,7 @@ class ExperimentRecorder:
                     energy_consumed,
                     distance_moved,
                     genome
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     (
@@ -77,6 +78,7 @@ class ExperimentRecorder:
                         organism.organism_id,
                         organism.parent_organism_id,
                         organism.birth_tick,
+                        organism.mutated_weight_count,
                         organism.death_tick,
                         organism.lifespan,
                         organism.initial_energy,

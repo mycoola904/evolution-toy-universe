@@ -58,6 +58,34 @@ class Genome:
             },
         }
 
+    def neural_weight_difference_count(self, other: "Genome") -> int:
+        expected_actions = set(Action)
+        expected_sensors = set(Sensor)
+
+        if (
+            set(self.weights) != expected_actions
+            or set(other.weights) != expected_actions
+        ):
+            raise ValueError(
+                "genomes must have matching neural weight topology"
+            )
+
+        for action in Action:
+            if (
+                set(self.weights[action]) != expected_sensors
+                or set(other.weights[action]) != expected_sensors
+            ):
+                raise ValueError(
+                    "genomes must have matching neural weight topology"
+                )
+
+        return sum(
+            self.weights[action][sensor]
+            != other.weights[action][sensor]
+            for action in Action
+            for sensor in Sensor
+        )
+
     def mutated_copy(
         self,
         random_generator: random.Random,

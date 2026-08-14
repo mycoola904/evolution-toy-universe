@@ -977,8 +977,11 @@ provenance cannot be obtained; an unknown state is not treated as clean.
 Every organism created during a run receives one lifetime result. Results
 include the run-local organism and parent IDs, birth and death ticks, lifespan,
 initial/final/peak energy, environmental energy consumed, movement distance,
-and genome JSON. Dead organisms remain available through their metrics records
-after being removed from the living population.
+genome JSON, and the number of neural weights that actually changed when a
+child was born. Initial organisms use a null mutation count, while a child with
+no changed weights uses zero. Whether a child received a mutation is derived
+from whether this count is positive. Dead organisms remain available through
+their metrics records after being removed from the living population.
 
 Per-tick and cell-by-cell persistence are intentionally excluded from Version
 1. Derived leaderboards and summaries should be calculated with SQL rather than

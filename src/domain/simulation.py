@@ -129,6 +129,7 @@ class Simulation:
             direction=direction,
             parent_id=None,
             birth_tick=0,
+            mutated_weight_count=None,
         )
 
         self.organisms.append(organism)
@@ -144,6 +145,7 @@ class Simulation:
         direction: Direction,
         parent_id: int | None,
         birth_tick: int,
+        mutated_weight_count: int | None,
     ) -> Organism:
         organism_id = self.next_organism_id
         self.next_organism_id += 1
@@ -167,6 +169,7 @@ class Simulation:
             action_counts=new_action_counts(),
             parent_id=parent_id,
             birth_tick=birth_tick,
+            mutated_weight_count=mutated_weight_count,
             initial_energy=energy,
             final_energy=energy,
             peak_energy=energy,
@@ -370,18 +373,24 @@ class Simulation:
         ) / 2.0
         parent.energy = shared_energy
 
+        child_genome = parent.genome.mutated_copy(
+            random_generator=self.random,
+            mutation_rate=self.config.mutation_rate,
+            mutation_amount=self.config.mutation_amount,
+        )
+        mutated_weight_count = (
+            child_genome.neural_weight_difference_count(parent.genome)
+        )
+
         child = self._build_organism(
-            genome=parent.genome.mutated_copy(
-                random_generator=self.random,
-                mutation_rate=self.config.mutation_rate,
-                mutation_amount=self.config.mutation_amount,
-            ),
+            genome=child_genome,
             energy=shared_energy,
             x=child_x,
             y=child_y,
             direction=parent.direction,
             parent_id=parent.organism_id,
             birth_tick=self.tick,
+            mutated_weight_count=mutated_weight_count,
         )
         occupied_positions.add((child_x, child_y))
 
@@ -1120,6 +1129,9 @@ class Simulation:
                 assert metrics.birth_tick == 0, (
                     "initial organisms must have birth_tick 0"
                 )
+                assert metrics.mutated_weight_count is None, (
+                    "initial organisms must not have mutation metadata"
+                )
             else:
                 assert metrics.parent_id is not None, (
                     "offspring must have a parent"
@@ -1131,6 +1143,21 @@ class Simulation:
                 assert metrics.birth_tick >= 1, (
                     "offspring birth_tick must be at least 1"
                 )
+                assert metrics.mutated_weight_count is not None, (
+                    "offspring must have mutation metadata"
+                )
+                assert 0 <= metrics.mutated_weight_count <= (
+                    len(Action) * len(Sensor)
+                ), "offspring mutation count must fit neural topology"
+
+                parent_metrics = self.metrics.organism_metrics[
+                    metrics.parent_id
+                ]
+                assert metrics.mutated_weight_count == (
+                    metrics.genome.neural_weight_difference_count(
+                        parent_metrics.genome
+                    )
+                ), "offspring mutation count must match its parent genome"
 
         if self.metrics.total_births == 0:
             assert self.metrics.first_birth_tick is None

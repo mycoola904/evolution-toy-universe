@@ -28,7 +28,9 @@ def make_weights() -> dict[Action, dict[Sensor, float]]:
 def test_forced_reproduction_tracks_lineage_and_delays_child_action(
     config_factory,
 ):
-    simulation = Simulation.big_bang(config_factory())
+    simulation = Simulation.big_bang(
+        config_factory(mutation_rate=0.0)
+    )
     zero_world_energy(simulation)
     parent = simulation.organisms[0]
     force_action(parent, Action.WAIT)
@@ -67,7 +69,9 @@ def test_forced_reproduction_tracks_lineage_and_delays_child_action(
     assert parent.birth_tick == 0
     assert child_metrics.parent_id == parent.organism_id
     assert child_metrics.birth_tick == 1
+    assert child_metrics.mutated_weight_count == 0
     assert parent_metrics.birth_tick == 0
+    assert parent_metrics.mutated_weight_count is None
     assert parent_metrics.offspring_count == 1
     assert parent_metrics.initial_energy == 100.0
     assert parent_metrics.final_energy == 50.0
@@ -82,6 +86,53 @@ def test_forced_reproduction_tracks_lineage_and_delays_child_action(
 
     simulation.step()
     assert sum(child_metrics.action_counts.values()) == 1
+    simulation._run_consistency_checks()
+
+
+def test_every_neural_weight_mutation_is_recorded(config_factory):
+    simulation = Simulation.big_bang(
+        config_factory(mutation_rate=1.0, mutation_amount=0.1)
+    )
+    zero_world_energy(simulation)
+    parent = simulation.organisms[0]
+    force_action(parent, Action.WAIT)
+
+    simulation.step()
+
+    child = next(
+        organism
+        for organism in simulation.organisms
+        if organism.parent_id == parent.organism_id
+    )
+    child_metrics = simulation.metrics.organism_metrics[
+        child.organism_id
+    ]
+    assert child_metrics.mutated_weight_count == (
+        len(Action) * len(Sensor)
+    )
+    simulation._run_consistency_checks()
+
+
+def test_selected_zero_amount_mutations_record_no_changes(config_factory):
+    simulation = Simulation.big_bang(
+        config_factory(mutation_rate=1.0, mutation_amount=0.0)
+    )
+    zero_world_energy(simulation)
+    parent = simulation.organisms[0]
+    force_action(parent, Action.WAIT)
+
+    simulation.step()
+
+    child = next(
+        organism
+        for organism in simulation.organisms
+        if organism.parent_id == parent.organism_id
+    )
+    child_metrics = simulation.metrics.organism_metrics[
+        child.organism_id
+    ]
+    assert child_metrics.mutated_weight_count == 0
+    assert child.genome.weights == parent.genome.weights
     simulation._run_consistency_checks()
 
 
@@ -226,6 +277,7 @@ def test_longevity_uses_birth_tick(config_factory):
         direction=simulation.organisms[0].direction,
         parent_id=0,
         birth_tick=8,
+        mutated_weight_count=0,
     )
     child_metrics = simulation.metrics.organism_metrics[
         child.organism_id
@@ -256,6 +308,7 @@ def test_newborn_position_is_reserved_immediately(config_factory):
         direction=Direction.NORTH,
         parent_id=None,
         birth_tick=0,
+        mutated_weight_count=None,
     )
     second_parent = simulation._build_organism(
         genome=Genome(make_weights(), 90.0),
@@ -265,6 +318,7 @@ def test_newborn_position_is_reserved_immediately(config_factory):
         direction=Direction.NORTH,
         parent_id=None,
         birth_tick=0,
+        mutated_weight_count=None,
     )
     occupied_positions = {
         (x, y)
@@ -397,6 +451,9 @@ def simulation_snapshot(simulation: Simulation):
                 organism.organism_id,
                 organism.parent_id,
                 organism.birth_tick,
+                simulation.metrics.organism_metrics[
+                    organism.organism_id
+                ].mutated_weight_count,
                 organism.x,
                 organism.y,
                 organism.direction,

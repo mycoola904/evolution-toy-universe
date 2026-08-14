@@ -69,6 +69,25 @@ commit and working-tree state when available, and one lifetime result for every
 organism created during the experiment. SQLite write failures cause the command
 to fail so an unsaved experiment is not reported as successfully recorded.
 
+Each child's lifetime result also records its immediate parent and the number
+of neural weights that actually changed at birth. A count of zero means the
+child was born without a stored neural-weight difference; `NULL` identifies an
+initial organism for which mutation-at-birth does not apply. For example:
+
+```sql
+SELECT
+    organism_id AS child_organism_id,
+    parent_organism_id,
+    birth_tick,
+    mutated_weight_count,
+    CASE WHEN mutated_weight_count > 0 THEN 1 ELSE 0 END
+        AS received_mutation
+FROM organism_results
+WHERE simulation_run_id = :simulation_run_id
+  AND parent_organism_id IS NOT NULL
+ORDER BY birth_tick, organism_id;
+```
+
 ## License
 
 See the LICENSE file for licensing information.

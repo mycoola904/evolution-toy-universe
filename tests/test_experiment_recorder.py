@@ -40,6 +40,7 @@ def make_organism_result(**overrides) -> OrganismResult:
         "organism_id": 0,
         "parent_organism_id": None,
         "birth_tick": 0,
+        "mutated_weight_count": None,
         "death_tick": None,
         "lifespan": 3,
         "initial_energy": 100.0,
@@ -67,9 +68,19 @@ def test_recorder_saves_run_and_multiple_organisms(tmp_path):
                 organism_id=1,
                 parent_organism_id=0,
                 birth_tick=2,
+                mutated_weight_count=0,
                 lifespan=1,
                 initial_energy=50.0,
                 final_energy=50.0,
+            ),
+            make_organism_result(
+                organism_id=2,
+                parent_organism_id=0,
+                birth_tick=3,
+                mutated_weight_count=2,
+                lifespan=0,
+                initial_energy=25.0,
+                final_energy=25.0,
             ),
         ),
     )
@@ -96,10 +107,16 @@ def test_recorder_saves_run_and_multiple_organisms(tmp_path):
     assert json.loads(run["config_json"]) == result.run.config
     assert run["git_commit"] is None
     assert run["git_dirty"] is None
-    assert len(organisms) == 2
+    assert len(organisms) == 3
     assert organisms[0]["parent_organism_id"] is None
     assert organisms[1]["parent_organism_id"] == 0
+    assert organisms[0]["mutated_weight_count"] is None
+    assert organisms[1]["mutated_weight_count"] == 0
+    assert organisms[2]["mutated_weight_count"] == 2
     assert json.loads(organisms[0]["genome"]) == result.organisms[0].genome
+    assert result.organisms[0].received_mutation is None
+    assert result.organisms[1].received_mutation is False
+    assert result.organisms[2].received_mutation is True
 
 
 def test_recorder_rolls_back_the_whole_experiment(tmp_path):
@@ -186,7 +203,9 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
 
 
 def test_completed_snapshot_preserves_reproduction_lineage(config_factory):
-    simulation = Simulation.big_bang(config_factory())
+    simulation = Simulation.big_bang(
+        config_factory(mutation_rate=1.0, mutation_amount=0.1)
+    )
     for cell in simulation.world.cells:
         cell.energy = 0.0
     simulation.initial_world_energy = 0.0
@@ -204,5 +223,10 @@ def test_completed_snapshot_preserves_reproduction_lineage(config_factory):
     assert [item.organism_id for item in result.organisms] == [0, 1]
     assert result.organisms[0].parent_organism_id is None
     assert result.organisms[1].parent_organism_id == 0
+    assert result.organisms[0].mutated_weight_count is None
+    assert result.organisms[1].mutated_weight_count == (
+        len(Action) * len(Sensor)
+    )
+    assert result.organisms[1].received_mutation is True
     assert result.organisms[0].final_energy == 50.0
     assert result.organisms[1].initial_energy == 50.0

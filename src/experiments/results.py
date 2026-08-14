@@ -29,6 +29,7 @@ class OrganismResult:
     organism_id: int
     parent_organism_id: int | None
     birth_tick: int
+    mutated_weight_count: int | None
     death_tick: int | None
     lifespan: int
     initial_energy: float
@@ -37,6 +38,12 @@ class OrganismResult:
     energy_consumed: float
     distance_moved: int
     genome: dict
+
+    @property
+    def received_mutation(self) -> bool | None:
+        if self.mutated_weight_count is None:
+            return None
+        return self.mutated_weight_count > 0
 
 
 @dataclass(frozen=True)
@@ -78,6 +85,7 @@ def build_experiment_result(
             organism_id=metrics.organism_id,
             parent_organism_id=metrics.parent_id,
             birth_tick=metrics.birth_tick,
+            mutated_weight_count=metrics.mutated_weight_count,
             death_tick=metrics.death_tick,
             lifespan=(
                 (

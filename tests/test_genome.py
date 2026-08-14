@@ -1,6 +1,8 @@
 import random
 import json
 
+import pytest
+
 from domain.action import Action
 from domain.genome import Genome
 from domain.sensor import Sensor
@@ -91,6 +93,58 @@ def test_genome_to_dict_is_complete_and_json_serializable():
             sensor.name for sensor in Sensor
         }
     assert json.loads(json.dumps(genome_data)) == genome_data
+
+
+def test_identical_genomes_have_no_neural_weight_differences():
+    parent = make_genome()
+
+    assert parent.neural_weight_difference_count(parent.copy()) == 0
+
+
+def test_neural_weight_difference_count_counts_exact_positions():
+    parent = make_genome()
+    child = parent.copy()
+    child.weights[Action.WAIT][Sensor.BIAS] += 0.1
+    child.weights[Action.EAT][Sensor.CELL_ENERGY] -= 0.2
+
+    assert child.neural_weight_difference_count(parent) == 2
+
+
+def test_reproduction_threshold_is_not_a_neural_weight_difference():
+    parent = make_genome()
+    child = Genome(
+        weights={
+            action: sensor_weights.copy()
+            for action, sensor_weights in parent.weights.items()
+        },
+        reproduction_threshold=999.0,
+    )
+
+    assert child.neural_weight_difference_count(parent) == 0
+
+
+def test_neural_weight_comparison_rejects_incompatible_topology():
+    parent = make_genome()
+    child = parent.copy()
+    del child.weights[Action.WAIT][Sensor.BIAS]
+
+    with pytest.raises(ValueError, match="topology"):
+        child.neural_weight_difference_count(parent)
+
+
+def test_neural_weight_comparison_changes_no_state_or_randomness():
+    parent = make_genome()
+    child = parent.copy()
+    parent_before = parent.to_dict()
+    child_before = child.to_dict()
+    random_generator = random.Random(99)
+    random_state = random_generator.getstate()
+
+    child.neural_weight_difference_count(parent)
+
+    assert parent.to_dict() == parent_before
+    assert child.to_dict() == child_before
+    assert random_generator.getstate() == random_state
 
 
 def test_zero_percent_mutation_produces_an_exact_copy():
