@@ -11,7 +11,7 @@ TerminationReason = Literal["extinction", "tick_limit"]
 
 @dataclass(frozen=True)
 class SimulationRunResult:
-    started_at: str
+    started_at: datetime
     seed: int
     world_width: int
     world_height: int
@@ -22,6 +22,18 @@ class SimulationRunResult:
     config: dict
     git_commit: str | None
     git_dirty: bool | None
+
+    def __post_init__(self) -> None:
+        if (
+            self.started_at.tzinfo is None
+            or self.started_at.utcoffset() is None
+        ):
+            raise ValueError("started_at must be timezone-aware")
+        object.__setattr__(
+            self,
+            "started_at",
+            self.started_at.astimezone(timezone.utc),
+        )
 
 
 @dataclass(frozen=True)
@@ -61,7 +73,7 @@ def build_experiment_result(
     if started_at.tzinfo is None:
         raise ValueError("started_at must be timezone-aware")
 
-    normalized_started_at = started_at.astimezone(timezone.utc).isoformat()
+    normalized_started_at = started_at.astimezone(timezone.utc)
     termination_reason: TerminationReason = (
         "extinction" if not simulation.organisms else "tick_limit"
     )

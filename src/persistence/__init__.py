@@ -1,1 +1,1 @@
-"""SQLite persistence for completed experiments."""
+"""PostgreSQL persistence for completed experiments."""

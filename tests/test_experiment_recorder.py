@@ -1,8 +1,8 @@
-import json
-import sqlite3
 from datetime import datetime, timezone
 
+import psycopg
 import pytest
+from psycopg.rows import dict_row
 
 from domain.action import Action
 from domain.sensor import Sensor
@@ -19,7 +19,7 @@ from persistence.experiment_recorder import ExperimentRecorder
 
 def make_run_result(**overrides) -> SimulationRunResult:
     values = {
-        "started_at": "2026-08-12T12:00:00+00:00",
+        "started_at": datetime(2026, 8, 12, 12, tzinfo=timezone.utc),
         "seed": 42,
         "world_width": 5,
         "world_height": 5,
@@ -57,9 +57,12 @@ def make_organism_result(**overrides) -> OrganismResult:
     return OrganismResult(**values)
 
 
-def test_recorder_saves_run_and_multiple_organisms(tmp_path):
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
+def test_run_result_rejects_naive_started_at():
+    with pytest.raises(ValueError, match="timezone-aware"):
+        make_run_result(started_at=datetime(2026, 8, 12, 12))
+
+
+def test_recorder_saves_run_and_multiple_organisms(database):
     result = ExperimentResult(
         run=make_run_result(git_dirty=None, git_commit=None),
         organisms=(
@@ -88,23 +91,24 @@ def test_recorder_saves_run_and_multiple_organisms(tmp_path):
     run_id = ExperimentRecorder(database).save(result)
 
     with database.connect() as connection:
-        connection.row_factory = sqlite3.Row
-        run = connection.execute(
-            "SELECT * FROM simulation_runs WHERE id = ?",
-            (run_id,),
-        ).fetchone()
-        organisms = connection.execute(
-            """
-            SELECT * FROM organism_results
-            WHERE simulation_run_id = ?
-            ORDER BY organism_id
-            """,
-            (run_id,),
-        ).fetchall()
+        with connection.cursor(row_factory=dict_row) as cursor:
+            run = cursor.execute(
+                "SELECT * FROM simulation_runs WHERE id = %s",
+                (run_id,),
+            ).fetchone()
+            organisms = cursor.execute(
+                """
+                SELECT * FROM organism_results
+                WHERE simulation_run_id = %s
+                ORDER BY organism_id
+                """,
+                (run_id,),
+            ).fetchall()
 
     assert run is not None
     assert run["termination_reason"] == "tick_limit"
-    assert json.loads(run["config_json"]) == result.run.config
+    assert run["started_at"] == result.run.started_at
+    assert run["config_json"] == result.run.config
     assert run["git_commit"] is None
     assert run["git_dirty"] is None
     assert len(organisms) == 3
@@ -113,22 +117,20 @@ def test_recorder_saves_run_and_multiple_organisms(tmp_path):
     assert organisms[0]["mutated_weight_count"] is None
     assert organisms[1]["mutated_weight_count"] == 0
     assert organisms[2]["mutated_weight_count"] == 2
-    assert json.loads(organisms[0]["genome"]) == result.organisms[0].genome
+    assert organisms[0]["genome"] == result.organisms[0].genome
     assert result.organisms[0].received_mutation is None
     assert result.organisms[1].received_mutation is False
     assert result.organisms[2].received_mutation is True
 
 
-def test_recorder_rolls_back_the_whole_experiment(tmp_path):
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
+def test_recorder_rolls_back_the_whole_experiment(database):
     duplicate = make_organism_result()
     result = ExperimentResult(
         run=make_run_result(),
         organisms=(duplicate, duplicate),
     )
 
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(psycopg.IntegrityError):
         ExperimentRecorder(database).save(result)
 
     with database.connect() as connection:
@@ -152,7 +154,7 @@ def force_action(organism, selected_action: Action) -> None:
 
 def test_completed_snapshot_and_recorder_include_dead_organism(
     config_factory,
-    tmp_path,
+    database,
 ):
     simulation = Simulation.big_bang(
         config_factory(
@@ -185,8 +187,6 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert organism.initial_energy == 1.0
     assert organism.final_energy == 0.0
 
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
     run_id = ExperimentRecorder(database).save(result)
 
     with database.connect() as connection:
@@ -194,7 +194,7 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
             """
             SELECT death_tick, lifespan, initial_energy, final_energy
             FROM organism_results
-            WHERE simulation_run_id = ?
+            WHERE simulation_run_id = %s
             """,
             (run_id,),
         ).fetchone()

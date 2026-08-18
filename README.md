@@ -39,6 +39,22 @@ Development is now beginning on the Version 1 implementation.
 
 ## Running an Experiment
 
+Completed experiments are stored in PostgreSQL. Set the connection string in
+the environment before running the simulation:
+
+```powershell
+$env:DATABASE_URL = "postgresql://ROLE:PASSWORD@localhost:5432/evolution_toy_universe"
+```
+
+Alternatively, put `DATABASE_URL` and `TEST_DATABASE_URL` in the repository-root
+`.env` file. The application and pytest load that ignored file automatically;
+variables already set in the process environment take precedence.
+
+The configured role must be able to connect and create objects in the target
+schema. The application automatically applies its checked SQL migrations;
+database and role creation remain operator tasks. Do not commit the real
+connection string or password.
+
 Run the simulation with the default seed (`4`):
 
 ```powershell
@@ -51,14 +67,7 @@ Provide a different seed with `--seed`:
 py src/main.py --seed 123
 ```
 
-Completed experiments are saved automatically to
-`data/experiments.db`. Choose another SQLite database with `--database`:
-
-```powershell
-py src/main.py --seed 123 --database data/alternate-experiments.db
-```
-
-Run without creating or writing a database with `--no-persist`:
+Run without connecting to or writing a database with `--no-persist`:
 
 ```powershell
 py src/main.py --seed 123 --no-persist
@@ -66,8 +75,9 @@ py src/main.py --seed 123 --no-persist
 
 Each saved run includes its complete configuration, termination reason, Git
 commit and working-tree state when available, and one lifetime result for every
-organism created during the experiment. SQLite write failures cause the command
-to fail so an unsaved experiment is not reported as successfully recorded.
+organism created during the experiment. PostgreSQL initialization and write
+failures cause the command to fail so an unsaved experiment is not reported as
+successfully recorded.
 
 Each child's lifetime result also records its immediate parent and the number
 of neural weights that actually changed at birth. A count of zero means the
@@ -87,6 +97,20 @@ WHERE simulation_run_id = :simulation_run_id
   AND parent_organism_id IS NOT NULL
 ORDER BY birth_tick, organism_id;
 ```
+
+## Running Tests
+
+Persistence tests require the dedicated test database. The test fixture refuses
+destructive cleanup unless the connected database reports the exact name
+`evolution_toy_universe_test`.
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql://ROLE:PASSWORD@localhost:5432/evolution_toy_universe_test"
+py -m pytest
+```
+
+`DATABASE_URL` must not point to the test database. Tests truncate only the two
+application tables in the test database and never create or drop a database.
 
 ## License
 

@@ -1,18 +1,50 @@
-import json
-import sqlite3
+from datetime import datetime, timezone
+from hashlib import sha256
 
+import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
+import persistence.database as database_module
 from persistence.database import (
+    MIGRATIONS,
+    SCHEMA_VERSION,
     DatabaseMigrationError,
     ExperimentDatabase,
-    SCHEMA_VERSION,
+    Migration,
 )
 
 
-def test_initialize_creates_expected_schema(tmp_path):
-    database = ExperimentDatabase(tmp_path / "nested" / "experiments.db")
+def insert_run(database: ExperimentDatabase) -> int:
+    with database.connect() as connection:
+        row = connection.execute(
+            """
+            INSERT INTO simulation_runs (
+                started_at,
+                seed,
+                world_width,
+                world_height,
+                ticks_completed,
+                initial_organism_count,
+                ending_organism_count,
+                termination_reason,
+                config_json
+            ) VALUES (%s, 1, 1, 1, 1, 1, 1, 'tick_limit', %s)
+            RETURNING id
+            """,
+            (
+                datetime(2026, 8, 14, tzinfo=timezone.utc),
+                Jsonb({}),
+            ),
+        ).fetchone()
 
+    assert row is not None
+    return row[0]
+
+
+def test_initialize_creates_expected_schema(
+    database: ExperimentDatabase,
+):
     database.initialize()
     database.initialize()
 
@@ -20,32 +52,59 @@ def test_initialize_creates_expected_schema(tmp_path):
         tables = {
             row[0]
             for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = current_schema()
+                """
             )
         }
         run_columns = {
-            row[1]
+            row[0]
             for row in connection.execute(
-                "PRAGMA table_info(simulation_runs)"
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'simulation_runs'
+                """
             )
         }
         organism_columns = {
-            row[1]
+            row[0]
             for row in connection.execute(
-                "PRAGMA table_info(organism_results)"
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'organism_results'
+                """
             )
         }
         indexes = {
-            row[1]
+            row[0]
             for row in connection.execute(
-                "PRAGMA index_list(organism_results)"
+                """
+                SELECT indexname
+                FROM pg_indexes
+                WHERE schemaname = current_schema()
+                  AND tablename = 'organism_results'
+                """
             )
         }
-        schema_version = connection.execute(
-            "PRAGMA user_version"
-        ).fetchone()[0]
+        applied_migrations = connection.execute(
+            """
+            SELECT version, name, checksum
+            FROM schema_migrations
+            ORDER BY version
+            """
+        ).fetchall()
 
-    assert {"simulation_runs", "organism_results"} <= tables
+    assert {
+        "schema_migrations",
+        "simulation_runs",
+        "organism_results",
+    } <= tables
     assert {"termination_reason", "config_json", "git_dirty"} <= run_columns
     assert {
         "parent_organism_id",
@@ -55,14 +114,17 @@ def test_initialize_creates_expected_schema(tmp_path):
         "genome",
     } <= organism_columns
     assert "idx_organism_results_parent" in indexes
-    assert schema_version == SCHEMA_VERSION
+    assert applied_migrations == [
+        (migration.version, migration.name, migration.checksum)
+        for migration in MIGRATIONS
+    ]
+    assert applied_migrations[-1][0] == SCHEMA_VERSION
 
 
-def test_every_connection_enforces_foreign_keys(tmp_path):
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
-
-    with pytest.raises(sqlite3.IntegrityError):
+def test_every_connection_enforces_foreign_keys(
+    database: ExperimentDatabase,
+):
+    with pytest.raises(psycopg.IntegrityError):
         with database.connect() as connection:
             connection.execute(
                 """
@@ -70,28 +132,19 @@ def test_every_connection_enforces_foreign_keys(tmp_path):
                     simulation_run_id, organism_id, birth_tick, lifespan,
                     initial_energy, final_energy, peak_energy,
                     energy_consumed, distance_moved, genome
-                ) VALUES (999, 0, 0, 1, 1, 0, 1, 0, 0, '{}')
-                """
+                ) VALUES (999, 0, 0, 1, 1, 0, 1, 0, 0, %s)
+                """,
+                (Jsonb({}),),
             )
 
 
-def test_negative_mutation_count_is_rejected(tmp_path):
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
+def test_negative_mutation_count_is_rejected(
+    database: ExperimentDatabase,
+):
+    run_id = insert_run(database)
 
-    with database.connect() as connection:
-        run_id = connection.execute(
-            """
-            INSERT INTO simulation_runs (
-                started_at, seed, world_width, world_height,
-                ticks_completed, initial_organism_count,
-                ending_organism_count, termination_reason, config_json
-            ) VALUES ('2026-08-14T00:00:00+00:00', 1, 1, 1, 1, 1, 1,
-                      'tick_limit', '{}')
-            """
-        ).lastrowid
-
-        with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(psycopg.IntegrityError):
+        with database.connect() as connection:
             connection.execute(
                 """
                 INSERT INTO organism_results (
@@ -99,146 +152,79 @@ def test_negative_mutation_count_is_rejected(tmp_path):
                     birth_tick, mutated_weight_count, lifespan,
                     initial_energy, final_energy, peak_energy,
                     energy_consumed, distance_moved, genome
-                ) VALUES (?, 1, 0, 1, -1, 0, 1, 1, 1, 0, 0, '{}')
+                ) VALUES (%s, 1, 0, 1, -1, 0, 1, 1, 1, 0, 0, %s)
                 """,
-                (run_id,),
+                (run_id, Jsonb({})),
             )
 
 
-def test_initialize_upgrades_and_backfills_legacy_database(tmp_path):
-    database_path = tmp_path / "legacy.db"
-    parent_genome = {
-        "reproduction_threshold": 90.0,
-        "weights": {"WAIT": {"BIAS": 1.0, "CELL_ENERGY": 0.0}},
-    }
-    child_genome = {
-        "reproduction_threshold": 90.0,
-        "weights": {"WAIT": {"BIAS": 1.25, "CELL_ENERGY": 0.0}},
-    }
-
-    with sqlite3.connect(database_path) as connection:
-        connection.executescript(
-            """
-            CREATE TABLE simulation_runs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                started_at TEXT NOT NULL,
-                seed INTEGER NOT NULL,
-                world_width INTEGER NOT NULL,
-                world_height INTEGER NOT NULL,
-                ticks_completed INTEGER NOT NULL,
-                initial_organism_count INTEGER NOT NULL,
-                ending_organism_count INTEGER NOT NULL,
-                termination_reason TEXT NOT NULL,
-                config_json TEXT NOT NULL,
-                git_commit TEXT,
-                git_dirty INTEGER
-            );
-            CREATE TABLE organism_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                simulation_run_id INTEGER NOT NULL,
-                organism_id INTEGER NOT NULL,
-                parent_organism_id INTEGER,
-                birth_tick INTEGER NOT NULL,
-                death_tick INTEGER,
-                lifespan INTEGER NOT NULL,
-                initial_energy REAL NOT NULL,
-                final_energy REAL NOT NULL,
-                peak_energy REAL NOT NULL,
-                energy_consumed REAL NOT NULL,
-                distance_moved INTEGER NOT NULL,
-                genome TEXT NOT NULL,
-                FOREIGN KEY (simulation_run_id) REFERENCES simulation_runs(id),
-                UNIQUE (simulation_run_id, organism_id)
-            );
-            """
-        )
-        run_id = connection.execute(
-            """
-            INSERT INTO simulation_runs (
-                started_at, seed, world_width, world_height,
-                ticks_completed, initial_organism_count,
-                ending_organism_count, termination_reason, config_json
-            ) VALUES ('2026-08-14T00:00:00+00:00', 1, 2, 2, 1, 1, 2,
-                      'tick_limit', '{}')
-            """
-        ).lastrowid
-        connection.executemany(
-            """
-            INSERT INTO organism_results (
-                simulation_run_id, organism_id, parent_organism_id,
-                birth_tick, lifespan, initial_energy, final_energy,
-                peak_energy, energy_consumed, distance_moved, genome
-            ) VALUES (?, ?, ?, ?, 1, 50, 50, 50, 0, 0, ?)
-            """,
-            (
-                (run_id, 0, None, 0, json.dumps(parent_genome)),
-                (run_id, 1, 0, 1, json.dumps(child_genome)),
-            ),
-        )
-
-    database = ExperimentDatabase(database_path)
-    database.initialize()
-    database.initialize()
-
+def test_initialize_rejects_unknown_newer_migration(
+    database: ExperimentDatabase,
+):
     with database.connect() as connection:
-        rows = connection.execute(
+        connection.execute(
             """
-            SELECT organism_id, mutated_weight_count
-            FROM organism_results
-            ORDER BY organism_id
+            INSERT INTO schema_migrations (version, name, checksum)
+            VALUES (999, 'future_schema', 'future-checksum')
             """
-        ).fetchall()
-        schema_version = connection.execute(
-            "PRAGMA user_version"
-        ).fetchone()[0]
+        )
 
-    assert rows == [(0, None), (1, 1)]
-    assert schema_version == SCHEMA_VERSION
+    with pytest.raises(DatabaseMigrationError, match="unsupported.*999"):
+        database.initialize()
 
 
-def test_invalid_legacy_genome_rolls_back_backfill(tmp_path):
-    database = ExperimentDatabase(tmp_path / "experiments.db")
-    database.initialize()
-    parent_genome = json.dumps(
-        {"weights": {"WAIT": {"BIAS": 1.0}}}
+def test_initialize_rejects_modified_applied_migration(
+    database: ExperimentDatabase,
+):
+    with database.connect() as connection:
+        connection.execute(
+            """
+            UPDATE schema_migrations
+            SET checksum = 'modified-checksum'
+            WHERE version = %s
+            """,
+            (SCHEMA_VERSION,),
+        )
+
+    with pytest.raises(DatabaseMigrationError, match="does not match"):
+        database.initialize()
+
+
+def test_failed_migration_rolls_back_schema_and_history(
+    database: ExperimentDatabase,
+    monkeypatch,
+):
+    failed_sql = """
+    CREATE TABLE migration_rollback_probe (id INTEGER PRIMARY KEY);
+    SELECT * FROM table_that_does_not_exist;
+    """
+    failed_migration = Migration(
+        version=SCHEMA_VERSION + 1,
+        name="intentional_failure",
+        checksum=sha256(failed_sql.encode("utf-8")).hexdigest(),
+        sql=failed_sql,
+    )
+    monkeypatch.setattr(
+        database_module,
+        "MIGRATIONS",
+        (*MIGRATIONS, failed_migration),
     )
 
-    with database.connect() as connection:
-        run_id = connection.execute(
-            """
-            INSERT INTO simulation_runs (
-                started_at, seed, world_width, world_height,
-                ticks_completed, initial_organism_count,
-                ending_organism_count, termination_reason, config_json
-            ) VALUES ('2026-08-14T00:00:00+00:00', 1, 2, 2, 1, 1, 2,
-                      'tick_limit', '{}')
-            """
-        ).lastrowid
-        connection.executemany(
-            """
-            INSERT INTO organism_results (
-                simulation_run_id, organism_id, parent_organism_id,
-                birth_tick, mutated_weight_count, lifespan,
-                initial_energy, final_energy, peak_energy,
-                energy_consumed, distance_moved, genome
-            ) VALUES (?, ?, ?, ?, NULL, 1, 50, 50, 50, 0, 0, ?)
-            """,
-            (
-                (run_id, 0, None, 0, parent_genome),
-                (run_id, 1, 0, 1, "not-json"),
-            ),
-        )
-
-    with pytest.raises(DatabaseMigrationError, match="organism 1"):
+    with pytest.raises(DatabaseMigrationError, match="intentional_failure"):
         database.initialize()
 
     with database.connect() as connection:
-        mutation_count = connection.execute(
+        probe_table = connection.execute(
+            "SELECT to_regclass('migration_rollback_probe')"
+        ).fetchone()[0]
+        migration_count = connection.execute(
             """
-            SELECT mutated_weight_count
-            FROM organism_results
-            WHERE organism_id = 1
-            """
+            SELECT COUNT(*)
+            FROM schema_migrations
+            WHERE version = %s
+            """,
+            (failed_migration.version,),
         ).fetchone()[0]
 
-    assert mutation_count is None
+    assert probe_table is None
+    assert migration_count == 0

@@ -1,9 +1,17 @@
+import psycopg
 import pytest
 
 import main as main_module
 from domain.simulation_metrics import TickMetrics, new_action_counts
 from main import DEFAULT_SEED, parse_args, should_print_progress
+from persistence.database import DatabaseConfigurationError
 from persistence.git_info import GitInfo
+
+
+EXAMPLE_DATABASE_URL = (
+    "postgresql://experiment_role:not-a-real-password@localhost:5432/"
+    "evolution_toy_universe"
+)
 
 
 def test_seed_defaults_to_current_experiment_seed():
@@ -14,15 +22,8 @@ def test_seed_can_be_set_from_command_line():
     assert parse_args(["--seed", "123"]).seed == 123
 
 
-def test_database_and_no_persist_options_are_parsed(tmp_path):
-    database_path = tmp_path / "alternate.db"
-
-    options = parse_args(
-        ["--database", str(database_path), "--no-persist"]
-    )
-
-    assert options.database == database_path
-    assert options.no_persist is True
+def test_no_persist_option_is_parsed():
+    assert parse_args(["--no-persist"]).no_persist is True
 
 
 def make_tick_metrics(**overrides) -> TickMetrics:
@@ -59,8 +60,15 @@ class CompletedSimulation:
         pass
 
 
-def test_no_persist_skips_git_and_database_work(monkeypatch, tmp_path):
-    database_path = tmp_path / "nested" / "experiments.db"
+def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    loaded = {}
+
+    def fake_load_dotenv(path, *, override):
+        loaded["path"] = path
+        loaded["override"] = override
+
+    monkeypatch.setattr(main_module, "load_dotenv", fake_load_dotenv)
     monkeypatch.setattr(
         main_module.Simulation,
         "big_bang",
@@ -70,6 +78,7 @@ def test_no_persist_skips_git_and_database_work(monkeypatch, tmp_path):
     def unexpected_call(*args, **kwargs):
         raise AssertionError("persistence work should have been skipped")
 
+    monkeypatch.setattr(main_module, "get_database_url", unexpected_call)
     monkeypatch.setattr(main_module, "get_git_info", unexpected_call)
     monkeypatch.setattr(
         main_module,
@@ -77,21 +86,35 @@ def test_no_persist_skips_git_and_database_work(monkeypatch, tmp_path):
         unexpected_call,
     )
 
-    main_module.main(
-        ["--no-persist", "--database", str(database_path)]
+    main_module.main(["--no-persist"])
+
+    assert loaded == {
+        "path": main_module.PROJECT_ROOT / ".env",
+        "override": False,
+    }
+
+
+def test_persistence_requires_database_url(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(
+        main_module,
+        "load_dotenv",
+        lambda path, *, override: False,
     )
 
-    assert not database_path.exists()
-    assert not database_path.parent.exists()
+    with pytest.raises(
+        DatabaseConfigurationError,
+        match="DATABASE_URL must be set",
+    ):
+        main_module.main([])
 
 
-def test_normal_run_persists_to_selected_database(
+def test_normal_run_persists_to_configured_database(
     monkeypatch,
-    tmp_path,
     capsys,
 ):
-    database_path = tmp_path / "experiments.db"
     captured = {}
+    monkeypatch.setenv("DATABASE_URL", EXAMPLE_DATABASE_URL)
     monkeypatch.setattr(
         main_module.Simulation,
         "big_bang",
@@ -113,14 +136,18 @@ def test_normal_run_persists_to_selected_database(
         fake_persist,
     )
 
-    main_module.main(["--database", str(database_path)])
+    main_module.main([])
 
-    assert captured["database_path"] == database_path
+    output = capsys.readouterr().out
+    assert captured["database_url"] == EXAMPLE_DATABASE_URL
     assert captured["git_info"] == GitInfo("abc123", False)
-    assert "Saved experiment run 7" in capsys.readouterr().out
+    assert "Saved experiment run 7" in output
+    assert "evolution_toy_universe" in output
+    assert "not-a-real-password" not in output
 
 
-def test_persistence_failure_is_fatal(monkeypatch, tmp_path):
+def test_persistence_failure_is_fatal(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", EXAMPLE_DATABASE_URL)
     monkeypatch.setattr(
         main_module.Simulation,
         "big_bang",
@@ -133,7 +160,7 @@ def test_persistence_failure_is_fatal(monkeypatch, tmp_path):
     )
 
     def fail(**kwargs):
-        raise OSError("database unavailable")
+        raise psycopg.OperationalError("database unavailable")
 
     monkeypatch.setattr(
         main_module,
@@ -141,7 +168,8 @@ def test_persistence_failure_is_fatal(monkeypatch, tmp_path):
         fail,
     )
 
-    with pytest.raises(OSError, match="database unavailable"):
-        main_module.main(
-            ["--database", str(tmp_path / "experiments.db")]
-        )
+    with pytest.raises(
+        psycopg.OperationalError,
+        match="database unavailable",
+    ):
+        main_module.main([])

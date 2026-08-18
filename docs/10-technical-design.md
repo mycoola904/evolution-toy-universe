@@ -956,21 +956,23 @@ Routine organism actions should not be logged individually unless detailed traci
 
 ## 11. Persistence and Data Formats
 
-Version 1 uses Python's built-in `sqlite3` module and a local SQLite database at
-`data/experiments.db`. SQLite records completed experiments; it is not the
-source of live simulation state and is never accessed by domain classes.
+Version 1 uses PostgreSQL through Psycopg 3. PostgreSQL records completed
+experiments; it is not the source of live simulation state and is never
+accessed by domain classes.
 
 The application boundary converts a completed simulation into plain result
 snapshots and passes them to the persistence layer. Saving one run and all of
-its organism results occurs in one transaction so a failure cannot leave a
-partial experiment.
+its organism results occurs in one PostgreSQL transaction so a failure cannot
+leave a partial experiment.
 
 ### 11.1 Run Provenance and Configuration
 
 Each run stores its seed, world dimensions, population counts, completed tick,
 termination reason, UTC start time, Git commit, Git dirty state, and complete
-validated configuration as deterministic JSON. Git fields are nullable when
-provenance cannot be obtained; an unknown state is not treated as clean.
+validated configuration as JSONB. Git fields are nullable when provenance
+cannot be obtained; an unknown state is not treated as clean. Start times use
+timezone-aware PostgreSQL timestamps and Git dirty state uses a native nullable
+boolean.
 
 ### 11.2 Organism Results
 
@@ -989,9 +991,13 @@ duplicated in summary tables.
 
 ### 11.3 Command-Line Behavior
 
-Normal command-line runs persist automatically. `--database PATH` selects a
-different database, and `--no-persist` disables all database and Git-provenance
-work. Database initialization and write failures are fatal.
+Normal command-line runs persist automatically using the connection string in
+`DATABASE_URL`. Application startup and pytest load a repository-root `.env`
+file through `python-dotenv` without overriding variables already present in the
+process environment. Connection strings are not accepted as command-line
+arguments so credentials are not placed in shell history or process listings.
+`--no-persist` disables connection configuration, database work, and
+Git-provenance work. Connection, migration, and write failures are fatal.
 
 ### 11.4 Verification Queries
 
@@ -1035,15 +1041,15 @@ The architecture should not intentionally prevent save-and-resume from being add
 
 ### 11.6 Data Versioning
 
-Schema versioning and a migrations framework are deferred from the initial
-two-table implementation. Before the schema changes, the project should add an
-explicit version and choose whether to migrate, support, or reject older data.
+Schema changes are stored as consecutively numbered SQL files and tracked in
+`schema_migrations` with their names, checksums, and application timestamps.
+Initialization acquires a transaction-scoped PostgreSQL advisory lock, validates
+the complete applied history, and applies pending migrations transactionally.
+Unknown versions, history gaps, and changed checksums are rejected with a clear
+compatibility error.
 
-If data structures change in future versions, the application should either:
-
-* migrate older data,
-* support it explicitly,
-* or reject it with a clear compatibility message.
+PostgreSQL migration numbering begins at `001` and is independent of the former
+SQLite `PRAGMA user_version`. Historical SQLite experiment data is not imported.
 
 ---
 
