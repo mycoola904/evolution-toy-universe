@@ -11,6 +11,8 @@ class SimulationConfig:
     initial_organism_energy: float
     minimum_cell_energy: int
     maximum_cell_energy: int
+    regeneration_cell_count: int
+    regeneration_amount: float
     minimum_initial_weight: float = -1.0
     maximum_initial_weight: float = 1.0
     base_energy_cost_per_tick: float = 1.0
@@ -25,6 +27,23 @@ class SimulationConfig:
     mutation_amount: float = 0.10
 
     def __post_init__(self) -> None:
+        total_cells = self.world_width * self.world_height
+        if type(self.regeneration_cell_count) is not int:
+            raise ValueError("regeneration_cell_count must be an integer")
+        if not 0 <= self.regeneration_cell_count <= total_cells:
+            raise ValueError(
+                "regeneration_cell_count must be between 0 and the "
+                "total number of world cells"
+            )
+
+        if (
+            not math.isfinite(self.regeneration_amount)
+            or self.regeneration_amount < 0.0
+        ):
+            raise ValueError(
+                "regeneration_amount must be finite and nonnegative"
+            )
+
         reproduction_values = {
             "initial_reproduction_threshold": (
                 self.initial_reproduction_threshold

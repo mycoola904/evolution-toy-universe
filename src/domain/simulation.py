@@ -10,6 +10,7 @@ from domain.direction import Direction
 from domain.action import Action
 from domain.sensor import Sensor
 from domain.simulation_metrics import (
+    EnvironmentalRegenerationResult,
     OrganismMetrics,
     SimulationMetrics,
     TickMetrics,
@@ -301,6 +302,29 @@ class Simulation:
             tick_metrics.ending_population,
         )
 
+        regeneration = self.regenerate_environmental_energy()
+        tick_metrics.regeneration_cells_selected = len(
+            regeneration.selected_cell_indices
+        )
+        tick_metrics.regeneration_energy_attempted = (
+            regeneration.attempted_energy
+        )
+        tick_metrics.regeneration_energy_added = (
+            regeneration.actual_energy_added
+        )
+        tick_metrics.regeneration_energy_wasted = (
+            regeneration.wasted_energy
+        )
+        self.metrics.regeneration_energy_attempted += (
+            regeneration.attempted_energy
+        )
+        self.metrics.regeneration_energy_added += (
+            regeneration.actual_energy_added
+        )
+        self.metrics.regeneration_energy_wasted += (
+            regeneration.wasted_energy
+        )
+
         self.metrics.tick_history.append(tick_metrics)
         return tick_metrics
 
@@ -414,6 +438,46 @@ class Simulation:
 
         return child
 
+    def regenerate_environmental_energy(
+        self,
+    ) -> EnvironmentalRegenerationResult:
+        cell_count = self.config.regeneration_cell_count
+        amount = self.config.regeneration_amount
+
+        if cell_count == 0 or amount == 0.0:
+            return EnvironmentalRegenerationResult(
+                selected_cell_indices=(),
+                attempted_energy=0.0,
+                actual_energy_added=0.0,
+                wasted_energy=0.0,
+            )
+
+        selected_cell_indices = tuple(
+            self.random.sample(
+                range(len(self.world.cells)),
+                k=cell_count,
+            )
+        )
+        attempted_energy = cell_count * amount
+        actual_energy_added = 0.0
+
+        for cell_index in selected_cell_indices:
+            cell = self.world.cells[cell_index]
+            energy_before = cell.energy
+            cell.energy = min(
+                self.config.maximum_cell_energy,
+                energy_before + amount,
+            )
+            actual_energy_added += cell.energy - energy_before
+
+        wasted_energy = attempted_energy - actual_energy_added
+        return EnvironmentalRegenerationResult(
+            selected_cell_indices=selected_cell_indices,
+            attempted_energy=attempted_energy,
+            actual_energy_added=actual_energy_added,
+            wasted_energy=wasted_energy,
+        )
+
     def execute_action(
         self,
         organism: Organism,
@@ -466,21 +530,22 @@ class Simulation:
 
         remaining_world_energy = self.total_world_energy()
 
-        consumed_world_energy = (
+        total_world_energy_available = (
             self.initial_world_energy
-            - remaining_world_energy
+            + self.metrics.regeneration_energy_added
         )
+        consumed_world_energy = self.metrics.total_energy_eaten
 
-        if self.initial_world_energy > 0:
+        if total_world_energy_available > 0:
             percent_consumed = (
                 consumed_world_energy
-                / self.initial_world_energy
+                / total_world_energy_available
                 * 100.0
             )
 
             percent_remaining = (
                 remaining_world_energy
-                / self.initial_world_energy
+                / total_world_energy_available
                 * 100.0
             )
         else:
@@ -627,6 +692,18 @@ class Simulation:
         self._print_report_kv(
             "Remaining world energy",
             f"{remaining_world_energy:.2f}",
+        )
+        self._print_report_kv(
+            "Regeneration energy attempted",
+            f"{self.metrics.regeneration_energy_attempted:.2f}",
+        )
+        self._print_report_kv(
+            "Regeneration energy added",
+            f"{self.metrics.regeneration_energy_added:.2f}",
+        )
+        self._print_report_kv(
+            "Regeneration energy wasted at cap",
+            f"{self.metrics.regeneration_energy_wasted:.2f}",
         )
         self._print_report_kv(
             "World energy consumed",
@@ -1056,15 +1133,49 @@ class Simulation:
         )
 
         remaining_world_energy = self.total_world_energy()
-        consumed_world_energy = (
+        expected_energy_eaten = (
             self.initial_world_energy
+            + self.metrics.regeneration_energy_added
             - remaining_world_energy
         )
 
         self._assert_close(
             self.metrics.total_energy_eaten,
-            consumed_world_energy,
-            "total_energy_eaten == initial_world_energy - remaining_world_energy",
+            expected_energy_eaten,
+            "total_energy_eaten == initial world energy plus regenerated "
+            "energy minus remaining world energy",
+        )
+
+        self._assert_close(
+            self.metrics.regeneration_energy_attempted,
+            self.metrics.regeneration_energy_added
+            + self.metrics.regeneration_energy_wasted,
+            "attempted regeneration == added regeneration + wasted regeneration",
+        )
+
+        self._assert_close(
+            sum(
+                tick.regeneration_energy_attempted
+                for tick in self.metrics.tick_history
+            ),
+            self.metrics.regeneration_energy_attempted,
+            "per-tick attempted regeneration",
+        )
+        self._assert_close(
+            sum(
+                tick.regeneration_energy_added
+                for tick in self.metrics.tick_history
+            ),
+            self.metrics.regeneration_energy_added,
+            "per-tick added regeneration",
+        )
+        self._assert_close(
+            sum(
+                tick.regeneration_energy_wasted
+                for tick in self.metrics.tick_history
+            ),
+            self.metrics.regeneration_energy_wasted,
+            "per-tick wasted regeneration",
         )
 
         total_organism_turns = sum(

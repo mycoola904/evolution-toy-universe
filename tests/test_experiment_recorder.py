@@ -161,6 +161,8 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
             initial_organism_energy=1.0,
             initial_reproduction_threshold=1_000.0,
             base_energy_cost_per_tick=2.0,
+            regeneration_cell_count=3,
+            regeneration_amount=7.0,
         )
     )
     for cell in simulation.world.cells:
@@ -180,6 +182,8 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert result.run.termination_reason == "extinction"
     assert result.run.ending_organism_count == 0
     assert result.run.config["base_energy_cost_per_tick"] == 2.0
+    assert result.run.config["regeneration_cell_count"] == 3
+    assert result.run.config["regeneration_amount"] == 7.0
     assert len(result.organisms) == 1
     organism = result.organisms[0]
     assert organism.death_tick == 1
@@ -198,8 +202,14 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
             """,
             (run_id,),
         ).fetchone()
+        stored_config = connection.execute(
+            "SELECT config_json FROM simulation_runs WHERE id = %s",
+            (run_id,),
+        ).fetchone()[0]
 
     assert stored == (1, 1, 1.0, 0.0)
+    assert stored_config["regeneration_cell_count"] == 3
+    assert stored_config["regeneration_amount"] == 7.0
 
 
 def test_completed_snapshot_preserves_reproduction_lineage(config_factory):

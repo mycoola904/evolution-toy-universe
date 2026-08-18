@@ -36,6 +36,8 @@ def test_reproduction_configuration_defaults():
         initial_organism_energy=100.0,
         minimum_cell_energy=0,
         maximum_cell_energy=1,
+        regeneration_cell_count=0,
+        regeneration_amount=0.0,
     )
 
     assert config.initial_reproduction_threshold == 150.0

@@ -58,13 +58,13 @@ The simulation engine advances the universe one discrete tick at a time. Each ti
 
 Each simulation tick follows the same sequence:
 
-1. Update environmental resources.
-2. Collect organism sensory inputs.
-3. Execute each organism's neural network.
-4. Resolve organism actions.
-5. Apply energy costs and gains.
-6. Process reproduction.
-7. Remove dead organisms.
+1. Collect organism sensory inputs.
+2. Execute each organism's neural network.
+3. Resolve organism actions.
+4. Apply energy costs and gains.
+5. Process reproduction.
+6. Remove dead organisms.
+7. Regenerate environmental energy for the next tick.
 8. Record simulation statistics.
 9. Render the updated world.
 

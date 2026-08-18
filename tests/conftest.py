@@ -101,6 +101,8 @@ def config_factory():
             "initial_organism_energy": 100.0,
             "minimum_cell_energy": 0,
             "maximum_cell_energy": 1,
+            "regeneration_cell_count": 0,
+            "regeneration_amount": 0.0,
             "minimum_initial_weight": -1.0,
             "maximum_initial_weight": 1.0,
             "base_energy_cost_per_tick": 0.0,

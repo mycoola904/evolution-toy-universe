@@ -96,15 +96,34 @@ When an organism consumes energy from a cell, the stored amount decreases accord
 
 # Environmental Energy Generation
 
-Version 1 introduces energy into the world through a simple regeneration process.
+Version 1 introduces energy through one explicit deterministic regeneration
+phase at the end of each tick, after organism actions, reproduction, and death
+processing.
 
-One possible implementation is:
+The simulation selects a configured number of distinct cells through its seeded
+random-number generator and attempts to add a configured amount of energy to
+each selected cell. A cell receives only enough energy to reach
+`maximum_cell_energy`. Any remainder is discarded without compensation,
+redirection, or replacement selection.
 
-- each simulation tick
-- randomly select a configurable number of cells
-- add a configurable amount of energy
+The configured input is therefore attempted energy:
 
-This continually replenishes the environment while remaining intentionally simple.
+```text
+attempted regeneration = regeneration_cell_count × regeneration_amount
+actual regeneration <= attempted regeneration
+wasted regeneration = attempted regeneration - actual regeneration
+```
+
+Both configuration values may be zero. If either value is zero, the phase
+returns without selecting cells or consuming random values. The amount may
+exceed the per-cell maximum because the cap controls the actual addition.
+Regenerated energy is first available for sensing and consumption on the next
+tick.
+
+The active 40-by-40 experiment currently attempts regeneration in 45 cells at
+3.0 energy per selected cell, or 135.0 attempted units per tick. These are
+experimental configuration values, not special constants in the regeneration
+rule.
 
 Future versions may replace this mechanism with more sophisticated ecological systems such as photosynthesis or nutrient cycles.
 
@@ -309,8 +328,8 @@ The following values should remain configurable.
 - Consume cost
 - Reproduction cost
 - Maximum organism energy
-- Environmental generation rate
-- Environmental generation amount
+- Regeneration cell count
+- Regeneration amount per selected cell
 - Maximum environmental energy per cell
 - Death recovery percentage
 

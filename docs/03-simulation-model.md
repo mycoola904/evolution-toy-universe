@@ -152,7 +152,6 @@ After all intents have been resolved:
 
 * Energy costs are applied.
 * Energy gained from food or other sources is added.
-* Environmental energy may regenerate or decay.
 * Organisms that can no longer sustain themselves may die.
 
 The exact energy rules are defined by the Energy Model.
@@ -172,7 +171,21 @@ Examples include:
 
 ---
 
-### 6. Advance Time
+### 6. Regenerate Environmental Energy
+
+After organism actions, energy costs, reproduction, and death processing are
+complete, the environment performs its regeneration phase. A configured number
+of distinct cells is selected through the simulation-owned random-number
+generator, and a configured amount of energy is attempted at each selected
+cell. Cell energy is capped at the configured maximum; attempted energy above
+that cap is discarded.
+
+Because regeneration occurs at the end of the completed organism lifecycle,
+the new energy is first observable by organisms on the next tick.
+
+---
+
+### 7. Advance Time
 
 The global simulation tick is incremented.
 
@@ -302,6 +315,12 @@ Random mutation is introduced during reproduction.
 Mutations provide the variation required for evolutionary processes while preserving deterministic behavior throughout the remainder of the simulation. Every reproducing organism is subject to the same mutation rules and probabilities.
 
 The exact mutation mechanisms and probabilities are defined in the Reproduction Model.
+
+### Environmental Regeneration
+
+The distinct cells that receive regeneration attempts are selected through the
+same simulation-owned pseudo-random number generator. This selection remains
+reproducible for an identical configuration, seed, and model version.
 
 ### Deterministic Behavior
 

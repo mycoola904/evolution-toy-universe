@@ -69,10 +69,15 @@ def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):
         loaded["override"] = override
 
     monkeypatch.setattr(main_module, "load_dotenv", fake_load_dotenv)
+
+    def capture_config(config):
+        loaded["config"] = config
+        return CompletedSimulation()
+
     monkeypatch.setattr(
         main_module.Simulation,
         "big_bang",
-        lambda config: CompletedSimulation(),
+        capture_config,
     )
 
     def unexpected_call(*args, **kwargs):
@@ -88,10 +93,10 @@ def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):
 
     main_module.main(["--no-persist"])
 
-    assert loaded == {
-        "path": main_module.PROJECT_ROOT / ".env",
-        "override": False,
-    }
+    assert loaded["path"] == main_module.PROJECT_ROOT / ".env"
+    assert loaded["override"] is False
+    assert loaded["config"].regeneration_cell_count == 45
+    assert loaded["config"].regeneration_amount == 3.0
 
 
 def test_persistence_requires_database_url(monkeypatch):

@@ -49,6 +49,11 @@ class TickMetrics:
     unsuccessful_eats: int = 0
     energy_eaten: float = 0.0
 
+    regeneration_cells_selected: int = 0
+    regeneration_energy_attempted: float = 0.0
+    regeneration_energy_added: float = 0.0
+    regeneration_energy_wasted: float = 0.0
+
 
 @dataclass
 class SimulationMetrics:
@@ -70,3 +75,15 @@ class SimulationMetrics:
     first_birth_tick: int | None = None
     last_birth_tick: int | None = None
     peak_population: int = 0
+
+    regeneration_energy_attempted: float = 0.0
+    regeneration_energy_added: float = 0.0
+    regeneration_energy_wasted: float = 0.0
+
+
+@dataclass(frozen=True)
+class EnvironmentalRegenerationResult:
+    selected_cell_indices: tuple[int, ...]
+    attempted_energy: float
+    actual_energy_added: float
+    wasted_energy: float

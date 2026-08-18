@@ -57,11 +57,22 @@ Using an abstract representation of energy keeps the simulation independent of a
 
 ## 6. Environmental Dynamics
 
-The initial environment follows a single, simple rule for energy generation.
+The initial environment follows a single configurable rule for energy
+regeneration. After organism actions, reproduction, and death processing are
+complete for a tick, the simulation selects `regeneration_cell_count` distinct
+cells through its seeded random-number generator. It attempts to add
+`regeneration_amount` energy to each selected cell.
 
-During each simulation tick, every cell has a fixed probability of gaining one unit of environmental energy. This probability is uniform across the entire world and is independent of whether the cell is currently occupied.
+Cell energy never exceeds `maximum_cell_energy`. If a selected cell has less
+capacity than the attempted amount, only the available capacity is added and
+the remainder is discarded. The simulation does not redirect wasted energy or
+select a replacement cell. Consequently, the configured values define
+attempted environmental input rather than a guaranteed amount of actual input.
 
-This simple regeneration rule provides a continuous source of environmental energy while allowing patterns of abundance and scarcity to emerge naturally through organism behavior.
+A cell count or amount of zero is valid. In either case, the regeneration phase
+performs no cell selection, consumes no random values, and produces no new
+environmental energy. Energy added during this end-of-tick phase becomes
+observable to organisms on the following tick.
 
 More sophisticated environmental dynamics, such as regional variation, diffusion, seasonal effects, or weather, may be added in future versions without altering the underlying structure of the world.
 
@@ -99,7 +110,7 @@ The following conditions are expected to remain true throughout every simulation
 - Every coordinate within the world contains exactly one cell.
 - Every organism occupies exactly one valid cell.
 - No cell contains more than one organism.
-- Environmental energy is never negative.
+- Environmental energy remains between zero and `maximum_cell_energy`.
 - All organism locations remain valid within the toroidal world.
 
 These invariants provide a foundation for validating the correctness of the simulation throughout its execution.

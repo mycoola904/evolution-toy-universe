@@ -695,7 +695,18 @@ Metrics or history may retain a record of the organism after its removal from th
 
 Environmental updates should be coordinated by the simulation engine rather than performed independently by cells.
 
-For Version 1, this includes the documented environmental energy update.
+For Version 1, the environmental update occurs after organism actions,
+reproduction, and death processing. The engine samples
+`regeneration_cell_count` distinct cell indexes through the simulation-owned
+seeded random-number generator, then attempts to add `regeneration_amount` to
+each selected cell. Sampling without replacement makes every selected cell
+unique within the tick.
+
+Actual energy added to a cell is limited by `maximum_cell_energy`; excess
+attempted energy is recorded as wasted and is not redirected. If either the
+cell count or amount is zero, the phase performs no selection and consumes no
+random values. Metrics distinguish attempted input, actual input, and input
+wasted at the cap.
 
 The implementation should ensure that environmental energy:
 
@@ -791,7 +802,8 @@ Likely Version 1 configuration values include:
 * world width and height,
 * initial organism count,
 * initial environmental energy distribution,
-* environmental energy regeneration,
+* environmental regeneration cell count,
+* environmental regeneration amount,
 * organism starting energy,
 * action energy costs,
 * reproduction threshold,
@@ -825,6 +837,8 @@ Validation should reject values such as:
 * nonpositive world dimensions,
 * more initial organisms than available cells,
 * negative energy values where not permitted,
+* a regeneration cell count that is negative or exceeds world capacity,
+* a negative or non-finite regeneration amount,
 * invalid mutation probabilities,
 * incompatible neural dimensions,
 * and invalid stopping conditions.
