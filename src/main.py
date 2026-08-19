@@ -105,7 +105,7 @@ def main(args: Sequence[str] | None = None) -> None:
         move_forward_energy_cost=1.00,
         initial_reproduction_threshold=150.0,
         reproduction_energy_cost=0.0,
-        max_ticks=10_000,
+        max_ticks=100_000,
     )
 
     started_at = None
