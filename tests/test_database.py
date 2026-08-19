@@ -92,6 +92,16 @@ def test_initialize_creates_expected_schema(
                 """
             )
         }
+        views = {
+            row[0]
+            for row in connection.execute(
+                """
+                SELECT table_name
+                FROM information_schema.views
+                WHERE table_schema = current_schema()
+                """
+            )
+        }
         applied_migrations = connection.execute(
             """
             SELECT version, name, checksum
@@ -114,6 +124,11 @@ def test_initialize_creates_expected_schema(
         "genome",
     } <= organism_columns
     assert "idx_organism_results_parent" in indexes
+    assert {
+        "v_experiment_runs",
+        "v_organism_outcomes",
+        "v_reproduction_outcomes",
+    } <= views
     assert applied_migrations == [
         (migration.version, migration.name, migration.checksum)
         for migration in MIGRATIONS

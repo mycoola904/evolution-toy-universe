@@ -105,6 +105,64 @@ WHERE simulation_run_id = :simulation_run_id
 ORDER BY birth_tick, organism_id;
 ```
 
+## Analyzing Experiments
+
+PostgreSQL provides three read-only analysis views derived from completed run
+and organism facts:
+
+- `v_experiment_runs` has one row per run with configuration, provenance,
+  population outcomes, movement, and consumed-energy totals.
+- `v_organism_outcomes` has one row per organism with survival, energy,
+  movement, mutation, and genome outcomes.
+- `v_reproduction_outcomes` adds generation and offspring outcomes. Orphaned
+  or cyclic lineage records remain visible with a `NULL` generation.
+
+Historical configuration keys are nullable. A missing or unexpectedly typed
+JSON value is reported as `NULL`; the views do not substitute current defaults.
+
+Compare seed-43 runs:
+
+```sql
+SELECT
+    run_id,
+    attempted_regeneration_per_tick,
+    max_ticks,
+    termination_reason,
+    final_tick,
+    remaining_population,
+    peak_population
+FROM v_experiment_runs
+WHERE seed = 43
+ORDER BY attempted_regeneration_per_tick, started_at;
+```
+
+Compare selected organisms and inspect lineage:
+
+```sql
+SELECT
+    run_id,
+    organism_id,
+    survived_to_end,
+    final_energy,
+    peak_energy,
+    energy_consumed,
+    movement_count
+FROM v_organism_outcomes
+WHERE organism_id IN (26, 59)
+ORDER BY run_id, organism_id;
+
+SELECT
+    organism_id,
+    parent_id,
+    generation,
+    offspring_count,
+    reproduced,
+    survived_to_end
+FROM v_reproduction_outcomes
+WHERE run_id = :run_id
+ORDER BY generation NULLS LAST, birth_tick, organism_id;
+```
+
 ## Running Tests
 
 Persistence tests require the dedicated test database. The test fixture refuses
