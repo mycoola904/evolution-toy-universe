@@ -44,6 +44,22 @@ def test_reproduction_configuration_defaults():
     assert config.reproduction_energy_cost == 0.0
     assert config.mutation_rate == 0.01
     assert config.mutation_amount == 0.10
+    assert config.max_ticks == 10_000
+
+
+@pytest.mark.parametrize("max_ticks", [0, -1, 1.5, True])
+def test_max_ticks_must_be_a_positive_integer(
+    config_factory,
+    max_ticks,
+):
+    with pytest.raises(ValueError, match="max_ticks"):
+        config_factory(max_ticks=max_ticks)
+
+
+def test_max_ticks_can_be_configured(config_factory):
+    config = config_factory(max_ticks=25)
+
+    assert config.max_ticks == 25
 
 
 @pytest.mark.parametrize(

@@ -184,6 +184,7 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert result.run.config["base_energy_cost_per_tick"] == 2.0
     assert result.run.config["regeneration_cell_count"] == 3
     assert result.run.config["regeneration_amount"] == 7.0
+    assert result.run.config["max_ticks"] == 10_000
     assert len(result.organisms) == 1
     organism = result.organisms[0]
     assert organism.death_tick == 1

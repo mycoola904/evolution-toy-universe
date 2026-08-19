@@ -105,6 +105,7 @@ def main(args: Sequence[str] | None = None) -> None:
         move_forward_energy_cost=1.00,
         initial_reproduction_threshold=150.0,
         reproduction_energy_cost=0.0,
+        max_ticks=10_000,
     )
 
     started_at = None
@@ -117,12 +118,11 @@ def main(args: Sequence[str] | None = None) -> None:
 
     simulation = Simulation.big_bang(config)
 
-    maximum_ticks = 10_000
     progress_interval = 10
 
     while (
         simulation.organisms
-        and simulation.tick < maximum_ticks
+        and simulation.tick < config.max_ticks
     ):
         tick_metrics = simulation.step()
 

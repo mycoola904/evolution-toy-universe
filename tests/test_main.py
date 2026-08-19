@@ -60,6 +60,37 @@ class CompletedSimulation:
         pass
 
 
+class TickLimitedSimulation:
+    def __init__(self) -> None:
+        self.organisms = [object()]
+        self.tick = 0
+
+    def step(self) -> TickMetrics:
+        self.tick += 1
+        return make_tick_metrics(tick=self.tick)
+
+    def print_experiment_report(self) -> None:
+        pass
+
+
+def test_run_stops_at_configured_max_ticks(monkeypatch):
+    simulation = TickLimitedSimulation()
+    monkeypatch.setattr(
+        main_module,
+        "SimulationConfig",
+        lambda **kwargs: type("Config", (), {"max_ticks": 3})(),
+    )
+    monkeypatch.setattr(
+        main_module.Simulation,
+        "big_bang",
+        lambda config: simulation,
+    )
+
+    main_module.main(["--no-persist"])
+
+    assert simulation.tick == 3
+
+
 def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     loaded = {}
@@ -97,6 +128,7 @@ def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):
     assert loaded["override"] is False
     assert loaded["config"].regeneration_cell_count == 45
     assert loaded["config"].regeneration_amount == 3.0
+    assert loaded["config"].max_ticks == 10_000
 
 
 def test_persistence_requires_database_url(monkeypatch):
