@@ -67,6 +67,13 @@ Provide a different seed with `--seed`:
 py src/main.py --seed 123
 ```
 
+Experiments run for at most 10,000 ticks by default. Set a different positive
+limit with `--max-ticks`:
+
+```powershell
+py src/main.py --seed 43 --max-ticks 100000
+```
+
 Run without connecting to or writing a database with `--no-persist`:
 
 ```powershell

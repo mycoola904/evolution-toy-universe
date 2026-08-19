@@ -25,7 +25,7 @@ class SimulationConfig:
     reproduction_energy_cost: float = 0.0
     mutation_rate: float = 0.01
     mutation_amount: float = 0.10
-    max_ticks: int = 100000
+    max_ticks: int = 10_000
 
     def __post_init__(self) -> None:
         if type(self.max_ticks) is not int or self.max_ticks <= 0:

@@ -22,6 +22,14 @@ def test_seed_can_be_set_from_command_line():
     assert parse_args(["--seed", "123"]).seed == 123
 
 
+def test_max_ticks_defaults_to_standard_experiment_limit():
+    assert parse_args([]).max_ticks == 10_000
+
+
+def test_max_ticks_can_be_set_from_command_line():
+    assert parse_args(["--max-ticks", "100000"]).max_ticks == 100_000
+
+
 def test_no_persist_option_is_parsed():
     assert parse_args(["--no-persist"]).no_persist is True
 
@@ -61,13 +69,19 @@ class CompletedSimulation:
 
 
 class TickLimitedSimulation:
-    def __init__(self) -> None:
+    def __init__(self, extinction_tick: int | None = None) -> None:
         self.organisms = [object()]
         self.tick = 0
+        self.extinction_tick = extinction_tick
 
     def step(self) -> TickMetrics:
         self.tick += 1
-        return make_tick_metrics(tick=self.tick)
+        if self.tick == self.extinction_tick:
+            self.organisms = []
+        return make_tick_metrics(
+            tick=self.tick,
+            ending_population=len(self.organisms),
+        )
 
     def print_experiment_report(self) -> None:
         pass
@@ -76,19 +90,27 @@ class TickLimitedSimulation:
 def test_run_stops_at_configured_max_ticks(monkeypatch):
     simulation = TickLimitedSimulation()
     monkeypatch.setattr(
-        main_module,
-        "SimulationConfig",
-        lambda **kwargs: type("Config", (), {"max_ticks": 3})(),
+        main_module.Simulation,
+        "big_bang",
+        lambda config: simulation,
     )
+
+    main_module.main(["--max-ticks", "3", "--no-persist"])
+
+    assert simulation.tick == 3
+
+
+def test_extinction_stops_run_before_configured_max_ticks(monkeypatch):
+    simulation = TickLimitedSimulation(extinction_tick=2)
     monkeypatch.setattr(
         main_module.Simulation,
         "big_bang",
         lambda config: simulation,
     )
 
-    main_module.main(["--no-persist"])
+    main_module.main(["--max-ticks", "5", "--no-persist"])
 
-    assert simulation.tick == 3
+    assert simulation.tick == 2
 
 
 def test_no_persist_skips_configuration_git_and_database_work(monkeypatch):

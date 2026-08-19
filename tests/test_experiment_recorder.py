@@ -163,6 +163,7 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
             base_energy_cost_per_tick=2.0,
             regeneration_cell_count=3,
             regeneration_amount=7.0,
+            max_ticks=37,
         )
     )
     for cell in simulation.world.cells:
@@ -184,7 +185,7 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert result.run.config["base_energy_cost_per_tick"] == 2.0
     assert result.run.config["regeneration_cell_count"] == 3
     assert result.run.config["regeneration_amount"] == 7.0
-    assert result.run.config["max_ticks"] == 10_000
+    assert result.run.config["max_ticks"] == 37
     assert len(result.organisms) == 1
     organism = result.organisms[0]
     assert organism.death_tick == 1
@@ -211,11 +212,16 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert stored == (1, 1, 1.0, 0.0)
     assert stored_config["regeneration_cell_count"] == 3
     assert stored_config["regeneration_amount"] == 7.0
+    assert stored_config["max_ticks"] == 37
 
 
 def test_completed_snapshot_preserves_reproduction_lineage(config_factory):
     simulation = Simulation.big_bang(
-        config_factory(mutation_rate=1.0, mutation_amount=0.1)
+        config_factory(
+            mutation_rate=1.0,
+            mutation_amount=0.1,
+            max_ticks=1,
+        )
     )
     for cell in simulation.world.cells:
         cell.energy = 0.0
@@ -231,6 +237,7 @@ def test_completed_snapshot_preserves_reproduction_lineage(config_factory):
     )
 
     assert result.run.termination_reason == "tick_limit"
+    assert simulation.tick == simulation.config.max_ticks
     assert [item.organism_id for item in result.organisms] == [0, 1]
     assert result.organisms[0].parent_organism_id is None
     assert result.organisms[1].parent_organism_id == 0
