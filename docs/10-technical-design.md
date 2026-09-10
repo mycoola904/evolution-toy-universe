@@ -93,6 +93,11 @@ Python is appropriate for the project because it supports:
 
 The project should target a currently supported version of Python. The exact minimum version should be recorded when implementation begins and should remain stable throughout Version 1 development unless there is a clear reason to change it.
 
+The simulation engine and domain model should remain ordinary Python code. They
+must not depend on FastAPI, browser concepts, or presentation-specific data
+structures. This keeps the same simulation core available to the web
+application, command-line experiments, and automated tests.
+
 ### 3.2 Dependencies
 
 The project should prefer the Python standard library where it provides a clear and sufficient solution.
@@ -122,19 +127,36 @@ The project should use consistent tools for:
 
 The exact tools may be selected during initial project setup. Tool selection should remain lightweight and should not become a major project of its own.
 
-### 3.4 User Interface Technology
+### 3.4 Application and User Interface Technology
 
-The Version 1 user interface should be implemented using a Python-compatible framework that supports:
+The selected application stack is:
 
-* a continuously updated two-dimensional world display,
-* experiment configuration controls,
-* start, pause, resume, stop, and reset controls,
-* basic metrics,
-* and organism inspection.
+* **FastAPI** for the web application and its HTTP and WebSocket boundaries,
+* **Jinja2** for server-rendered pages and HTML fragments,
+* **HTMX** for focused browser interactions without a separate single-page
+  application,
+* **PostgreSQL through Psycopg 3** for completed experiment persistence and
+  reporting queries,
+* **Plotly.js** for interactive report charts,
+* **HTML Canvas** for the live two-dimensional world display,
+* and a **WebSocket** connection for future live runtime snapshots and status.
 
-The final framework does not need to be selected in this first draft.
+FastAPI, Jinja2, and HTMX should provide experiment configuration, run
+management, reports, navigation, and organism details as a server-rendered web
+application. Plotly.js should receive report data prepared by the application;
+it must not calculate authoritative simulation results in the browser.
 
-The selection should favor simplicity, responsiveness, maintainability, and the ability to keep UI code separate from the simulation engine.
+The runtime grid is a specialized rendering surface within that application.
+It should draw cells, energy, organisms, overlays, and animation with HTML
+Canvas rather than representing every cell as an HTML element. A WebSocket may
+later deliver snapshots and status for live visualization and controls without
+requiring the reporting and configuration pages to become a JavaScript
+application.
+
+Selection of this stack does not require every part to be delivered in the
+first UI milestone. The browser interface may begin with ordinary HTTP requests
+and add the live Canvas and WebSocket runtime view when interactive simulation
+work begins.
 
 ---
 
@@ -1071,6 +1093,27 @@ SQLite `PRAGMA user_version`. Historical SQLite experiment data is not imported.
 
 The user interface described in `09-ui.md` is a passive visualization and control layer over the simulation.
 
+```text
+Browser
+├── Jinja2 pages and HTMX fragments
+├── Plotly.js report charts
+└── Canvas runtime view
+        │
+        │ future live snapshots and status over WebSocket
+        v
+FastAPI application
+├── experiment and run coordination
+├── reporting queries
+└── snapshot and inspection boundaries
+        │
+        ├── Python simulation core
+        └── PostgreSQL through Psycopg 3
+```
+
+FastAPI is an application boundary, not part of the universe model. HTTP
+requests, HTMX events, WebSocket messages, rendering cadence, and browser state
+must not determine simulation rules or outcomes.
+
 ### 12.1 Simulation Control
 
 The UI should support:
@@ -1100,6 +1143,17 @@ The rendering system should display:
 * overlays,
 * and basic experiment status.
 
+The live world should be rendered with HTML Canvas. Jinja2 should render the
+page containing the Canvas and its surrounding controls, while HTMX should
+handle page- or panel-level interactions that benefit from server-rendered HTML.
+Canvas drawing code may interpolate visual movement, show effects, or retain
+short-lived trails, but those display choices must not feed back into the
+simulation.
+
+Plotly.js should be used for report and history charts rather than for the live
+world grid. Chart inputs should come from application reporting queries or
+simulation snapshots through explicit serialization boundaries.
+
 ### 12.3 Simulation Rate and Display Rate
 
 Simulation speed and rendering speed should be separate concepts.
@@ -1116,9 +1170,11 @@ This separation allows faster experiments and prevents graphical performance fro
 
 Long-running simulation work should not freeze the interface.
 
-Depending on the selected UI framework, the implementation may use:
+FastAPI request handlers must not run a long simulation inline. The
+implementation may use:
 
 * a worker thread,
+* a worker process,
 * a timer-driven step loop,
 * message passing,
 * or another safe coordination mechanism.
@@ -1126,6 +1182,11 @@ Depending on the selected UI framework, the implementation may use:
 Concurrency must not change simulation behavior.
 
 Only the simulation engine should modify simulation state.
+
+A future WebSocket endpoint may publish immutable snapshots, metrics, and run
+status to the Canvas view and receive control commands. The transport must not
+expose mutable domain objects or make simulation progress depend on whether a
+browser is connected.
 
 ### 12.5 Commands and Snapshots
 
@@ -1421,7 +1482,8 @@ Packaging into a standalone executable may be considered later but is not requir
 
 The primary development and Version 1 execution environment will be documented when implementation begins.
 
-Cross-platform support is desirable where it comes naturally from Python and the selected UI framework, but it should not delay the first working release.
+Cross-platform support is desirable where it comes naturally from Python and
+the selected web stack, but it should not delay the first working release.
 
 ### 16.5 Output Organization
 
@@ -1470,15 +1532,18 @@ They are excluded so that Version 1 can focus on implementing and observing the 
 
 The following questions should be resolved before or during early implementation.
 
-### 18.1 User Interface Framework
+### 18.1 Runtime Execution Model
 
-Which Python-compatible UI framework provides the simplest reliable support for:
+How should FastAPI coordinate a long-running interactive simulation without
+blocking request handling?
 
-* two-dimensional rendering,
-* controls,
-* overlays,
-* organism selection,
-* and responsive simulation execution?
+The first implementation should choose the simplest safe worker model that:
+
+* preserves deterministic single-owner updates,
+* accepts control commands at clear tick boundaries,
+* publishes immutable snapshots for HTTP and WebSocket consumers,
+* handles cancellation and application shutdown cleanly,
+* and does not require a separate distributed job system before it is needed.
 
 ### 18.2 Domain Mutability
 
