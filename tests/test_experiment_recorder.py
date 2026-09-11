@@ -192,13 +192,24 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert organism.lifespan == 1
     assert organism.initial_energy == 1.0
     assert organism.final_energy == 0.0
+    assert organism.wait_count == 1
+    assert organism.eat_attempt_count == 0
+    assert organism.successful_eat_count == 0
+    assert organism.unsuccessful_eat_count == 0
+    assert organism.move_forward_count == 0
+    assert organism.turn_left_count == 0
+    assert organism.turn_right_count == 0
+    assert organism.final_action == "WAIT"
 
     run_id = ExperimentRecorder(database).save(result)
 
     with database.connect() as connection:
         stored = connection.execute(
             """
-            SELECT death_tick, lifespan, initial_energy, final_energy
+            SELECT death_tick, lifespan, initial_energy, final_energy,
+                   wait_count, eat_attempt_count, successful_eat_count,
+                   unsuccessful_eat_count, move_forward_count,
+                   turn_left_count, turn_right_count, final_action
             FROM organism_results
             WHERE simulation_run_id = %s
             """,
@@ -209,7 +220,7 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
             (run_id,),
         ).fetchone()[0]
 
-    assert stored == (1, 1, 1.0, 0.0)
+    assert stored == (1, 1, 1.0, 0.0, 1, 0, 0, 0, 0, 0, 0, "WAIT")
     assert stored_config["regeneration_cell_count"] == 3
     assert stored_config["regeneration_amount"] == 7.0
     assert stored_config["max_ticks"] == 37

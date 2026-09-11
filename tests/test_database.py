@@ -117,6 +117,14 @@ def test_initialize_creates_expected_schema(
         "initial_energy",
         "final_energy",
         "genome",
+        "wait_count",
+        "eat_attempt_count",
+        "successful_eat_count",
+        "unsuccessful_eat_count",
+        "move_forward_count",
+        "turn_left_count",
+        "turn_right_count",
+        "final_action",
     } <= organism_columns
     assert "idx_organism_results_parent" in indexes
     assert applied_migrations == [
@@ -160,6 +168,64 @@ def test_negative_mutation_count_is_rejected(
                 ) VALUES (%s, 1, 0, 1, -1, 0, 1, 1, 1, 0, 0, %s)
                 """,
                 (run_id, Jsonb({})),
+            )
+
+
+def test_legacy_organism_behavior_is_left_null(database: ExperimentDatabase):
+    run_id = insert_run(database)
+    with database.connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO organism_results (
+                simulation_run_id, organism_id, birth_tick, lifespan,
+                initial_energy, final_energy, peak_energy,
+                energy_consumed, distance_moved, genome
+            ) VALUES (%s, 0, 0, 1, 1, 1, 1, 0, 0, %s)
+            """,
+            (run_id, Jsonb({})),
+        )
+        stored = connection.execute(
+            """
+            SELECT wait_count, eat_attempt_count, successful_eat_count,
+                   unsuccessful_eat_count, move_forward_count,
+                   turn_left_count, turn_right_count, final_action
+            FROM organism_results
+            WHERE simulation_run_id = %s AND organism_id = 0
+            """,
+            (run_id,),
+        ).fetchone()
+
+    assert stored == (None,) * 8
+
+
+@pytest.mark.parametrize(
+    "behavior_values",
+    (
+        (1, 1, 1, 1, 0, 0, 0, "WAIT"),
+        (-1, 1, 0, 1, 0, 0, 0, "WAIT"),
+        (1, 1, 0, 1, 0, 0, 0, "FLY"),
+    ),
+)
+def test_inconsistent_persisted_organism_behavior_is_rejected(
+    database: ExperimentDatabase,
+    behavior_values,
+):
+    run_id = insert_run(database)
+    with pytest.raises(psycopg.IntegrityError):
+        with database.connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO organism_results (
+                    simulation_run_id, organism_id, birth_tick, lifespan,
+                    initial_energy, final_energy, peak_energy,
+                    energy_consumed, distance_moved, genome,
+                    wait_count, eat_attempt_count, successful_eat_count,
+                    unsuccessful_eat_count, move_forward_count,
+                    turn_left_count, turn_right_count, final_action
+                ) VALUES (%s, 0, 0, 1, 1, 1, 1, 0, 0, %s,
+                          %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (run_id, Jsonb({}), *behavior_values),
             )
 
 

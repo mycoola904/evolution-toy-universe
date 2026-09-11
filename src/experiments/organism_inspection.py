@@ -42,6 +42,13 @@ class GenomeComparison:
 
 
 @dataclass(frozen=True)
+class BehaviorActionStatistic:
+    action: str
+    count: int
+    percentage: float
+
+
+@dataclass(frozen=True)
 class OrganismInspection:
     run_id: int
     organism_id: int
@@ -57,6 +64,14 @@ class OrganismInspection:
     peak_energy: float
     energy_consumed: float
     distance_moved: int
+    wait_count: int | None
+    eat_attempt_count: int | None
+    successful_eat_count: int | None
+    unsuccessful_eat_count: int | None
+    move_forward_count: int | None
+    turn_left_count: int | None
+    turn_right_count: int | None
+    final_action: str | None
     genome: Mapping[str, Any]
     parent_genome: Mapping[str, Any] | None
     parent_exists: bool
@@ -67,6 +82,65 @@ class OrganismInspection:
     @property
     def child_count(self) -> int:
         return len(self.child_organism_ids)
+
+    @property
+    def behavior_available(self) -> bool:
+        return all(
+            count is not None
+            for count in (
+                self.wait_count,
+                self.eat_attempt_count,
+                self.successful_eat_count,
+                self.unsuccessful_eat_count,
+                self.move_forward_count,
+                self.turn_left_count,
+                self.turn_right_count,
+            )
+        )
+
+    @property
+    def total_actions(self) -> int | None:
+        if not self.behavior_available:
+            return None
+        return sum(
+            count
+            for count in (
+                self.wait_count,
+                self.eat_attempt_count,
+                self.move_forward_count,
+                self.turn_left_count,
+                self.turn_right_count,
+            )
+            if count is not None
+        )
+
+    @property
+    def eat_success_rate(self) -> float | None:
+        if not self.behavior_available or not self.eat_attempt_count:
+            return None
+        return self.successful_eat_count / self.eat_attempt_count * 100.0
+
+    @property
+    def action_distribution(self) -> tuple[BehaviorActionStatistic, ...]:
+        if not self.behavior_available:
+            return ()
+        total = self.total_actions or 0
+        action_counts = (
+            ("WAIT", self.wait_count),
+            ("EAT", self.eat_attempt_count),
+            ("MOVE_FORWARD", self.move_forward_count),
+            ("TURN_LEFT", self.turn_left_count),
+            ("TURN_RIGHT", self.turn_right_count),
+        )
+        return tuple(
+            BehaviorActionStatistic(
+                action=action,
+                count=count,
+                percentage=count / total * 100.0 if total else 0.0,
+            )
+            for action, count in action_counts
+            if count is not None
+        )
 
 
 def _weights(genome: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -238,6 +312,14 @@ def inspect_organism(
         peak_energy=float(organism["peak_energy"]),
         energy_consumed=float(organism["energy_consumed"]),
         distance_moved=organism["distance_moved"],
+        wait_count=organism.get("wait_count"),
+        eat_attempt_count=organism.get("eat_attempt_count"),
+        successful_eat_count=organism.get("successful_eat_count"),
+        unsuccessful_eat_count=organism.get("unsuccessful_eat_count"),
+        move_forward_count=organism.get("move_forward_count"),
+        turn_left_count=organism.get("turn_left_count"),
+        turn_right_count=organism.get("turn_right_count"),
+        final_action=organism.get("final_action"),
         genome=genome,
         parent_genome=parent["genome"] if parent is not None else None,
         parent_exists=parent is not None,

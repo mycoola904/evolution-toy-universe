@@ -681,6 +681,17 @@ class Simulation:
         for organism_id, metrics in (
             self.metrics.organism_metrics.items()
         ):
+            assert all(
+                count >= 0 for count in metrics.action_counts.values()
+            ), "per-organism action counts must be nonnegative"
+            assert (
+                metrics.successful_eats + metrics.unsuccessful_eats
+                == metrics.action_counts[Action.EAT]
+            ), "per-organism EAT outcomes must equal EAT actions"
+            organism_action_total = sum(metrics.action_counts.values())
+            assert (metrics.final_action is None) == (organism_action_total == 0), (
+                "final action must exist exactly when an organism has acted"
+            )
             if organism_id < self.config.initial_organisms:
                 assert metrics.parent_id is None, (
                     "initial organisms must not have a parent"

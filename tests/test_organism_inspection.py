@@ -21,8 +21,9 @@ def row(
     mutated_weight_count,
     *,
     birth_tick=0,
+    behavior=None,
 ):
-    return {
+    values = {
         "simulation_run_id": 7,
         "organism_id": organism_id,
         "parent_organism_id": parent_id,
@@ -37,6 +38,9 @@ def row(
         "distance_moved": 3,
         "genome": persisted_genome,
     }
+    if behavior is not None:
+        values.update(behavior)
+    return values
 
 
 def family_rows():
@@ -128,3 +132,50 @@ def test_non_weight_genome_difference_is_not_counted_as_a_mutated_weight():
 
 def test_missing_organism_returns_none():
     assert inspect_organism(family_rows(), 999) is None
+
+
+def test_behavior_totals_success_rate_and_action_percentages_are_derived():
+    inspected = inspect_organism(
+        [
+            row(
+                10,
+                None,
+                genome(),
+                None,
+                behavior={
+                    "wait_count": 2,
+                    "eat_attempt_count": 2,
+                    "successful_eat_count": 1,
+                    "unsuccessful_eat_count": 1,
+                    "move_forward_count": 3,
+                    "turn_left_count": 2,
+                    "turn_right_count": 3,
+                    "final_action": "TURN_RIGHT",
+                },
+            )
+        ],
+        10,
+    )
+
+    assert inspected is not None
+    assert inspected.behavior_available is True
+    assert inspected.total_actions == 12
+    assert inspected.eat_success_rate == 50.0
+    assert {item.action: item.count for item in inspected.action_distribution} == {
+        "WAIT": 2,
+        "EAT": 2,
+        "MOVE_FORWARD": 3,
+        "TURN_LEFT": 2,
+        "TURN_RIGHT": 3,
+    }
+    assert sum(item.percentage for item in inspected.action_distribution) == 100.0
+
+
+def test_legacy_behavior_is_explicitly_unavailable():
+    inspected = inspect_organism(family_rows(), 10)
+
+    assert inspected is not None
+    assert inspected.behavior_available is False
+    assert inspected.total_actions is None
+    assert inspected.eat_success_rate is None
+    assert inspected.action_distribution == ()

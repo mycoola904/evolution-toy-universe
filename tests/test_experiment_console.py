@@ -112,6 +112,16 @@ def test_legacy_run_without_report_json_renders_gracefully(
             """,
             (datetime(2026, 9, 10, tzinfo=timezone.utc), Jsonb({})),
         ).fetchone()[0]
+        connection.execute(
+            """
+            INSERT INTO organism_results (
+                simulation_run_id, organism_id, birth_tick, lifespan,
+                initial_energy, final_energy, peak_energy,
+                energy_consumed, distance_moved, genome
+            ) VALUES (%s, 0, 0, 1, 1, 1, 1, 0, 0, %s)
+            """,
+            (run_id, Jsonb({"weights": {}})),
+        )
 
     response = TestClient(
         create_app(database_url=test_database_url)
@@ -120,6 +130,11 @@ def test_legacy_run_without_report_json_renders_gracefully(
     assert response.status_code == 200
     assert "Legacy run" in response.text
     assert "predates structured report persistence" in response.text
+    organism = TestClient(create_app(database_url=test_database_url)).get(
+        f"/runs/{run_id}/organisms/0"
+    )
+    assert organism.status_code == 200
+    assert "Not available for legacy run" in organism.text
 
 
 def test_family_tree_links_to_organism_genomes_and_parent_diffs(
@@ -159,13 +174,17 @@ def test_family_tree_links_to_organism_genomes_and_parent_diffs(
                     simulation_run_id, organism_id, parent_organism_id,
                     birth_tick, mutated_weight_count, death_tick, lifespan,
                     initial_energy, final_energy, peak_energy,
-                    energy_consumed, distance_moved, genome
-                ) VALUES (%s, %s, %s, %s, %s, NULL, %s, 100, 80, 120, 12, 2, %s)
+                energy_consumed, distance_moved, genome
+                , wait_count, eat_attempt_count, successful_eat_count,
+                unsuccessful_eat_count, move_forward_count,
+                turn_left_count, turn_right_count, final_action
+            ) VALUES (%s, %s, %s, %s, %s, NULL, %s, 100, 80, 120, 12, 2, %s,
+                      %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
-                    (run_id, 100, None, 0, None, 10, Jsonb(base_genome)),
-                    (run_id, 102, 100, 2, 1, 8, Jsonb(mutated_genome)),
-                    (run_id, 103, 100, 3, 0, 7, Jsonb(base_genome)),
+                    (run_id, 100, None, 0, None, 10, Jsonb(base_genome), 2, 2, 1, 1, 2, 2, 2, "TURN_RIGHT"),
+                    (run_id, 102, 100, 2, 1, 8, Jsonb(mutated_genome), 1, 2, 1, 1, 2, 2, 1, "TURN_LEFT"),
+                    (run_id, 103, 100, 3, 0, 7, Jsonb(base_genome), 1, 2, 0, 2, 2, 1, 1, "TURN_RIGHT"),
                 ),
             )
 
@@ -184,6 +203,10 @@ def test_family_tree_links_to_organism_genomes_and_parent_diffs(
     assert mutated.status_code == 200
     assert "1 mutated weight detected" in mutated.text
     assert "Parent genome" in mutated.text
+    assert "Behavior" in mutated.text
+    assert "8 total actions" in mutated.text
+    assert "50.00%" in mutated.text
+    assert "TURN_LEFT" in mutated.text
     assert "EAT.CELL_ENERGY" in mutated.text
     assert "0.97000000" in mutated.text
     assert "1.04000000" in mutated.text

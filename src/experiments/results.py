@@ -51,6 +51,54 @@ class OrganismResult:
     energy_consumed: float
     distance_moved: int
     genome: dict
+    wait_count: int | None = None
+    eat_attempt_count: int | None = None
+    successful_eat_count: int | None = None
+    unsuccessful_eat_count: int | None = None
+    move_forward_count: int | None = None
+    turn_left_count: int | None = None
+    turn_right_count: int | None = None
+    final_action: str | None = None
+
+    def __post_init__(self) -> None:
+        counts = (
+            self.wait_count,
+            self.eat_attempt_count,
+            self.successful_eat_count,
+            self.unsuccessful_eat_count,
+            self.move_forward_count,
+            self.turn_left_count,
+            self.turn_right_count,
+        )
+        if all(count is None for count in counts):
+            if self.final_action is not None:
+                raise ValueError("legacy behavior cannot have a final action")
+            return
+        if any(count is None for count in counts):
+            raise ValueError("organism behavior counts must be complete or unavailable")
+        if any(count < 0 for count in counts if count is not None):
+            raise ValueError("organism behavior counts must be nonnegative")
+        if (
+            self.successful_eat_count + self.unsuccessful_eat_count
+            != self.eat_attempt_count
+        ):
+            raise ValueError("successful and unsuccessful EATs must equal attempts")
+        if self.move_forward_count != self.distance_moved:
+            raise ValueError("MOVE_FORWARD count must match distance_moved")
+        total_actions = (
+            self.wait_count
+            + self.eat_attempt_count
+            + self.move_forward_count
+            + self.turn_left_count
+            + self.turn_right_count
+        )
+        if total_actions != self.lifespan:
+            raise ValueError("total actions must match lifespan")
+        valid_actions = {action.name for action in Action}
+        if self.final_action is not None and self.final_action not in valid_actions:
+            raise ValueError("final_action must be a known action")
+        if (self.final_action is None) != (total_actions == 0):
+            raise ValueError("final_action must exist exactly when actions exist")
 
     @property
     def received_mutation(self) -> bool | None:
@@ -117,6 +165,16 @@ def build_experiment_result(
                 Action.MOVE_FORWARD
             ],
             genome=metrics.genome.to_dict(),
+            wait_count=metrics.action_counts[Action.WAIT],
+            eat_attempt_count=metrics.action_counts[Action.EAT],
+            successful_eat_count=metrics.successful_eats,
+            unsuccessful_eat_count=metrics.unsuccessful_eats,
+            move_forward_count=metrics.action_counts[Action.MOVE_FORWARD],
+            turn_left_count=metrics.action_counts[Action.TURN_LEFT],
+            turn_right_count=metrics.action_counts[Action.TURN_RIGHT],
+            final_action=(
+                metrics.final_action.name if metrics.final_action is not None else None
+            ),
         )
         for metrics in sorted(
             simulation.metrics.organism_metrics.values(),

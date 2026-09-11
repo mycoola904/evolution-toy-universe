@@ -184,6 +184,14 @@ class ExperimentReports:
                         peak_energy,
                         energy_consumed,
                         distance_moved,
+                        wait_count,
+                        eat_attempt_count,
+                        successful_eat_count,
+                        unsuccessful_eat_count,
+                        move_forward_count,
+                        turn_left_count,
+                        turn_right_count,
+                        final_action,
                         genome
                     FROM organism_results
                     WHERE simulation_run_id = %s

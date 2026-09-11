@@ -1026,6 +1026,16 @@ no changed weights uses zero. Whether a child received a mutation is derived
 from whether this count is positive. Dead organisms remain available through
 their metrics records after being removed from the living population.
 
+Per-organism behavior columns persist the existing authoritative action counts,
+successful and unsuccessful EAT outcomes, and final action. They are nullable
+as a complete group so pre-migration rows remain distinguishable from genuine
+zero-action organisms. New snapshots validate nonnegative counts, EAT outcome
+totals, movement-count consistency, known final actions, and completeness.
+Percentages, total actions, and EAT success rate remain reporting-layer derived
+values. Under the current simulation semantics an organism chooses one action
+per active tick, so its total action count equals its lifespan; a newborn at the
+final tick legitimately has both a zero lifespan and zero actions.
+
 Per-tick and cell-by-cell persistence are intentionally excluded from Version
 1. Derived leaderboards and summaries should be calculated with SQL rather than
 duplicated in summary tables.

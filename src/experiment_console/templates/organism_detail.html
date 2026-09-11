@@ -27,7 +27,7 @@
 
 <div class="detail-grid organism-context">
   <section class="panel report-section">
-    <div class="panel-heading"><div><p class="eyebrow">Persisted results</p><h2>Life &amp; behavior</h2></div></div>
+    <div class="panel-heading"><div><p class="eyebrow">Persisted results</p><h2>Life &amp; energy</h2></div></div>
     <dl class="report-list">
       <div><dt>Initial energy</dt><dd>{{ '%.8f' | format(organism.initial_energy) }}</dd></div>
       <div><dt>Final energy</dt><dd>{{ '%.8f' | format(organism.final_energy) }}</dd></div>
@@ -46,6 +46,24 @@
     </dl>
   </section>
 </div>
+
+<section class="panel report-section">
+  <div class="panel-heading"><div><p class="eyebrow">Lifetime activity</p><h2>Behavior</h2></div>{% if organism.behavior_available %}<span class="genome-threshold">{{ organism.total_actions }} total actions</span>{% endif %}</div>
+  {% if organism.behavior_available %}
+  <div class="behavior-grid">
+    <div class="table-scroll"><table class="compact"><thead><tr><th>Action</th><th>Count</th><th>Distribution</th></tr></thead><tbody>{% for action in organism.action_distribution %}<tr><th>{{ action.action }}</th><td>{{ action.count }}</td><td>{{ '%.2f%%' | format(action.percentage) }}</td></tr>{% endfor %}</tbody></table></div>
+    <dl class="report-list">
+      <div><dt>EAT attempts</dt><dd>{{ organism.eat_attempt_count }}</dd></div>
+      <div><dt>Successful EATs</dt><dd>{{ organism.successful_eat_count }}</dd></div>
+      <div><dt>Unsuccessful EATs</dt><dd>{{ organism.unsuccessful_eat_count }}</dd></div>
+      <div><dt>EAT success rate</dt><dd>{% if organism.eat_success_rate is none %}No EAT attempts{% else %}{{ '%.2f%%' | format(organism.eat_success_rate) }}{% endif %}</dd></div>
+      <div><dt>Final action</dt><dd>{{ organism.final_action or 'None — organism never acted' }}</dd></div>
+    </dl>
+  </div>
+  {% else %}
+  <div class="comparison-summary warning">Not available for legacy run</div>
+  {% endif %}
+</section>
 
 <section class="panel report-section">
   <div class="panel-heading"><div><p class="eyebrow">Source of truth</p><h2>Persisted genome</h2></div>{% if organism.genome.get('reproduction_threshold') is not none %}<span class="genome-threshold">Reproduction threshold {{ '%.8f' | format(organism.genome.get('reproduction_threshold')) }}</span>{% endif %}</div>

@@ -115,6 +115,8 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 .tree-node strong a { color: inherit; }
 .tree-node span { color: var(--muted); font-size: .8rem; }
 .organism-context { margin-bottom: 2rem; }
+.behavior-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); }
+.behavior-grid .report-list { border-left: 1px solid var(--line); }
 .relationship-list dd a { font-variant-numeric: tabular-nums; }
 .genome-threshold { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
 .organism-genome { border-left: 0; }
@@ -144,7 +146,8 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 .empty-state p { color: var(--muted); }
 footer { border-top: 1px solid var(--line); color: var(--muted); text-align: center; padding: 2rem; font-size: .8rem; }
 @media (max-width: 900px) {
-  .form-sections, .detail-grid, .report-grid, .genome-summary { grid-template-columns: 1fr; }
+  .form-sections, .detail-grid, .report-grid, .genome-summary, .behavior-grid { grid-template-columns: 1fr; }
+  .behavior-grid .report-list { border-left: 0; border-top: 1px solid var(--line); }
   .report-list.columns, .notable-grid { grid-template-columns: 1fr; }
   .weight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-left: 0; }
   .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

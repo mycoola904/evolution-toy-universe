@@ -152,6 +152,10 @@ life and energy results, parent/sibling/child navigation, the complete genome
 grouped by action, and an exact weight-by-weight comparison with the persisted
 parent genome. Founders are identified as having no parent comparison, while
 unchanged descendants are explicitly labeled as genome-identical to the parent.
+Newly recorded organisms also expose lifetime behavior totals: every action,
+successful and unsuccessful EAT outcomes, EAT success rate, action percentage
+distribution, and final action. Runs recorded before behavior persistence show
+that these values are unavailable rather than presenting fabricated zeroes.
 
 Experiment Console V1 executes a submitted run synchronously in a server worker
 thread and returns the completed persisted result. A process-based background

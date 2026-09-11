@@ -74,9 +74,18 @@ class ExperimentRecorder:
                         peak_energy,
                         energy_consumed,
                         distance_moved,
-                        genome
+                        genome,
+                        wait_count,
+                        eat_attempt_count,
+                        successful_eat_count,
+                        unsuccessful_eat_count,
+                        move_forward_count,
+                        turn_left_count,
+                        turn_right_count,
+                        final_action
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s,
                         %s, %s, %s, %s, %s, %s
                     )
                     """,
@@ -95,6 +104,14 @@ class ExperimentRecorder:
                             organism.energy_consumed,
                             organism.distance_moved,
                             Jsonb(organism.genome),
+                            organism.wait_count,
+                            organism.eat_attempt_count,
+                            organism.successful_eat_count,
+                            organism.unsuccessful_eat_count,
+                            organism.move_forward_count,
+                            organism.turn_left_count,
+                            organism.turn_right_count,
+                            organism.final_action,
                         )
                         for organism in experiment_result.organisms
                     ),

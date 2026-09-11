@@ -40,7 +40,7 @@ def insert_report_run(database, *, seed, started_at, ending_population=1):
                 INSERT INTO organism_results (
                     simulation_run_id, organism_id, birth_tick, lifespan,
                     initial_energy, final_energy, peak_energy,
-                    energy_consumed, distance_moved, genome
+                energy_consumed, distance_moved, genome
                 ) VALUES (%s, %s, 0, %s, 100, 80, %s, %s, %s, %s)
                 """,
                 (
@@ -154,3 +154,35 @@ def test_organism_detail_loads_persisted_genome_and_relationships(database):
     assert detail.genome_comparison is not None
     assert detail.genome_comparison.changed_weights[0].path == "EAT.CELL_ENERGY"
     assert ExperimentReports(database).organism_detail(run_id, 999) is None
+
+
+def test_organism_detail_loads_behavior_statistics(database):
+    run_id = insert_report_run(
+        database,
+        seed=9,
+        started_at=datetime(2026, 9, 10, tzinfo=timezone.utc),
+    )
+    with database.connect() as connection:
+        connection.execute(
+            """
+            UPDATE organism_results
+            SET wait_count = 2,
+                eat_attempt_count = 2,
+                successful_eat_count = 1,
+                unsuccessful_eat_count = 1,
+                move_forward_count = distance_moved,
+                turn_left_count = 1,
+                turn_right_count = lifespan - 2 - 2 - distance_moved - 1,
+                final_action = 'TURN_RIGHT'
+            WHERE simulation_run_id = %s AND organism_id = 0
+            """,
+            (run_id,),
+        )
+
+    detail = ExperimentReports(database).organism_detail(run_id, 0)
+
+    assert detail is not None
+    assert detail.behavior_available is True
+    assert detail.total_actions == detail.lifespan
+    assert detail.eat_success_rate == 50.0
+    assert detail.final_action == "TURN_RIGHT"
