@@ -1273,6 +1273,16 @@ completion. Family summaries and immutable tree nodes are prepared before the
 template boundary; route functions and Jinja templates do not implement
 recursive lineage calculations.
 
+Organism inspection also reads the normalized `organism_results` rows rather
+than copying genomes into `report_json`. A presentation-neutral inspection
+helper resolves founder and generation context, parent/sibling/child links, and
+compares the child's persisted genome with its persisted parent genome. It
+returns both full genomes and structured differences with parent value, child value, and
+numeric delta. The calculated difference count is checked against
+`mutated_weight_count`; disagreement or malformed topology is surfaced as
+diagnostic information instead of breaking the page. Founder and unchanged
+descendant states are represented explicitly.
+
 ---
 
 ## 13. Error Handling and Validation

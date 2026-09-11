@@ -147,6 +147,12 @@ alive at experiment end. A run's Lineage / Families view compares each founder
 (an organism born at tick zero with no parent) and all descendants, with an
 indented parent-child tree available for every founder.
 
+Organism IDs in a family tree open persisted organism details. The page shows
+life and energy results, parent/sibling/child navigation, the complete genome
+grouped by action, and an exact weight-by-weight comparison with the persisted
+parent genome. Founders are identified as having no parent comparison, while
+unchanged descendants are explicitly labeled as genome-identical to the parent.
+
 Experiment Console V1 executes a submitted run synchronously in a server worker
 thread and returns the completed persisted result. A process-based background
 runner, live Canvas world visualization, and WebSocket updates remain future

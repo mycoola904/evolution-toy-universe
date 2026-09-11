@@ -112,7 +112,25 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 .family-tree ul > li::before { content: ""; position: absolute; left: -1.5rem; top: 1.7rem; width: 1.4rem; border-top: 1px solid var(--line); }
 .tree-node { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; width: fit-content; min-width: 620px; padding: .8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .tree-node strong { color: var(--accent); min-width: 110px; }
+.tree-node strong a { color: inherit; }
 .tree-node span { color: var(--muted); font-size: .8rem; }
+.organism-context { margin-bottom: 2rem; }
+.relationship-list dd a { font-variant-numeric: tabular-nums; }
+.genome-threshold { color: var(--muted); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.organism-genome { border-left: 0; }
+.parent-genome { background: rgba(98,214,166,.025); }
+.comparison-summary { padding: 1.4rem; font-size: 1.08rem; font-weight: 750; }
+.comparison-summary.identical { color: var(--accent); background: rgba(98,214,166,.06); }
+.comparison-summary.changed { color: var(--warning); background: rgba(255,172,112,.06); }
+.comparison-summary.warning, .comparison-warning { color: var(--danger); background: rgba(255,140,140,.07); }
+.comparison-warning { padding: .9rem 1.4rem; border-top: 1px solid rgba(255,140,140,.2); }
+.mutation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+.mutation-card { padding: 1.2rem 1.4rem; background: var(--surface); border-left: 3px solid var(--warning); }
+.mutation-card h3 { margin-top: 0; color: var(--warning); font-size: 1rem; }
+.mutation-card dl { margin: 0; }
+.mutation-card dl div { display: flex; justify-content: space-between; padding: .3rem 0; }
+.mutation-card dt { color: var(--muted); }
+.mutation-card dd { margin: 0; font-variant-numeric: tabular-nums; }
 .emphasis { color: var(--accent); font-weight: 800; }
 .compare-picker { padding: 1.4rem; margin-bottom: 2rem; }
 .run-checkboxes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin-bottom: 1.3rem; }
@@ -131,6 +149,7 @@ footer { border-top: 1px solid var(--line); color: var(--muted); text-align: cen
   .weight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-left: 0; }
   .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .run-checkboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mutation-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .site-header { align-items: flex-start; padding-block: 1rem; flex-direction: column; }

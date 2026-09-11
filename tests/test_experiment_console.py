@@ -120,3 +120,76 @@ def test_legacy_run_without_report_json_renders_gracefully(
     assert response.status_code == 200
     assert "Legacy run" in response.text
     assert "predates structured report persistence" in response.text
+
+
+def test_family_tree_links_to_organism_genomes_and_parent_diffs(
+    database,
+    test_database_url,
+):
+    base_genome = {
+        "reproduction_threshold": 150.0,
+        "weights": {
+            "WAIT": {"CELL_ENERGY": 0.5, "STORED_ENERGY": 0.2, "BIAS": -0.25},
+            "EAT": {"CELL_ENERGY": 0.97, "STORED_ENERGY": 0.4, "BIAS": 0.1},
+        },
+    }
+    mutated_genome = {
+        **base_genome,
+        "weights": {
+            **base_genome["weights"],
+            "EAT": {**base_genome["weights"]["EAT"], "CELL_ENERGY": 1.04},
+        },
+    }
+    with database.connect() as connection:
+        run_id = connection.execute(
+            """
+            INSERT INTO simulation_runs (
+                started_at, seed, world_width, world_height, ticks_completed,
+                initial_organism_count, ending_organism_count,
+                termination_reason, config_json
+            ) VALUES (%s, 4, 5, 5, 10, 1, 3, 'tick_limit', %s)
+            RETURNING id
+            """,
+            (datetime(2026, 9, 10, tzinfo=timezone.utc), Jsonb({})),
+        ).fetchone()[0]
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO organism_results (
+                    simulation_run_id, organism_id, parent_organism_id,
+                    birth_tick, mutated_weight_count, death_tick, lifespan,
+                    initial_energy, final_energy, peak_energy,
+                    energy_consumed, distance_moved, genome
+                ) VALUES (%s, %s, %s, %s, %s, NULL, %s, 100, 80, 120, 12, 2, %s)
+                """,
+                (
+                    (run_id, 100, None, 0, None, 10, Jsonb(base_genome)),
+                    (run_id, 102, 100, 2, 1, 8, Jsonb(mutated_genome)),
+                    (run_id, 103, 100, 3, 0, 7, Jsonb(base_genome)),
+                ),
+            )
+
+    client = TestClient(create_app(database_url=test_database_url))
+    tree = client.get(f"/runs/{run_id}/families/100")
+    founder = client.get(f"/runs/{run_id}/organisms/100")
+    mutated = client.get(f"/runs/{run_id}/organisms/102")
+    unchanged = client.get(f"/runs/{run_id}/organisms/103")
+    missing = client.get(f"/runs/{run_id}/organisms/999")
+
+    assert tree.status_code == 200
+    assert f'/runs/{run_id}/organisms/102' in tree.text
+    assert founder.status_code == 200
+    assert "Founder organism — no parent genome for comparison" in founder.text
+    assert "0.97000000" in founder.text
+    assert mutated.status_code == 200
+    assert "1 mutated weight detected" in mutated.text
+    assert "Parent genome" in mutated.text
+    assert "EAT.CELL_ENERGY" in mutated.text
+    assert "0.97000000" in mutated.text
+    assert "1.04000000" in mutated.text
+    assert "+0.07000000" in mutated.text
+    assert f'/runs/{run_id}/organisms/100' in mutated.text
+    assert f'/runs/{run_id}/organisms/103' in mutated.text
+    assert unchanged.status_code == 200
+    assert "Genome identical to parent" in unchanged.text
+    assert missing.status_code == 404

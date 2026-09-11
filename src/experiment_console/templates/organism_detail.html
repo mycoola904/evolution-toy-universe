@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Organism {{ organism.organism_id }} · Run #{{ run.id }}{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Persisted organism · Run #{{ run.id }}</p>
+    <h1>Organism {{ organism.organism_id }}</h1>
+    <p>Life results, reproductive context, and exact persisted genome inheritance.</p>
+  </div>
+  <div class="button-row">
+    <a class="secondary-button" href="{{ url_for('run_detail', run_id=run.id) }}">Run Report</a>
+    <a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">Family Summary</a>
+    {% if organism.founder_organism_id is not none %}<a class="secondary-button" href="{{ url_for('family_tree', run_id=run.id, founder_id=organism.founder_organism_id) }}">Family Tree</a>{% endif %}
+  </div>
+</section>
+
+<section class="metric-grid" aria-label="Organism summary">
+  <article><span>Organism ID</span><strong>{{ organism.organism_id }}</strong></article>
+  <article><span>Founder</span><strong>{% if organism.founder_organism_id is not none %}{{ organism.founder_organism_id }}{% else %}Unknown{% endif %}</strong></article>
+  <article><span>Generation</span><strong>{% if organism.generation is not none %}{{ organism.generation }}{% else %}Unknown{% endif %}</strong></article>
+  <article><span>Lifespan</span><strong>{{ organism.lifespan }}</strong></article>
+  <article><span>Birth tick</span><strong>{{ organism.birth_tick }}</strong></article>
+  <article><span>End status</span><strong>{% if organism.death_tick is none %}Alive{% else %}Died {{ organism.death_tick }}{% endif %}</strong></article>
+  <article><span>Mutated weights</span><strong>{% if organism.mutated_weight_count is none %}N/A{% else %}{{ organism.mutated_weight_count }}{% endif %}</strong></article>
+  <article><span>Children</span><strong>{{ organism.child_count }}</strong></article>
+</section>
+
+<div class="detail-grid organism-context">
+  <section class="panel report-section">
+    <div class="panel-heading"><div><p class="eyebrow">Persisted results</p><h2>Life &amp; behavior</h2></div></div>
+    <dl class="report-list">
+      <div><dt>Initial energy</dt><dd>{{ '%.8f' | format(organism.initial_energy) }}</dd></div>
+      <div><dt>Final energy</dt><dd>{{ '%.8f' | format(organism.final_energy) }}</dd></div>
+      <div><dt>Peak energy</dt><dd>{{ '%.8f' | format(organism.peak_energy) }}</dd></div>
+      <div><dt>Total energy consumed</dt><dd>{{ '%.8f' | format(organism.energy_consumed) }}</dd></div>
+      <div><dt>Distance moved</dt><dd>{{ organism.distance_moved }}</dd></div>
+      <div><dt>Death tick</dt><dd>{% if organism.death_tick is none %}Alive at experiment end{% else %}{{ organism.death_tick }}{% endif %}</dd></div>
+    </dl>
+  </section>
+  <section class="panel report-section">
+    <div class="panel-heading"><div><p class="eyebrow">Relationships</p><h2>Lineage navigation</h2></div></div>
+    <dl class="report-list relationship-list">
+      <div><dt>Parent</dt><dd>{% if organism.parent_organism_id is none %}Founder — none{% elif organism.parent_exists %}<a href="{{ url_for('organism_detail', run_id=run.id, organism_id=organism.parent_organism_id) }}">Organism {{ organism.parent_organism_id }}</a>{% else %}Organism {{ organism.parent_organism_id }} (result unavailable){% endif %}</dd></div>
+      <div><dt>Siblings</dt><dd>{% if organism.sibling_organism_ids %}{% for sibling_id in organism.sibling_organism_ids %}<a href="{{ url_for('organism_detail', run_id=run.id, organism_id=sibling_id) }}">{{ sibling_id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}None{% endif %}</dd></div>
+      <div><dt>Children</dt><dd>{% if organism.child_organism_ids %}{% for child_id in organism.child_organism_ids %}<a href="{{ url_for('organism_detail', run_id=run.id, organism_id=child_id) }}">{{ child_id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% else %}None{% endif %}</dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="panel report-section">
+  <div class="panel-heading"><div><p class="eyebrow">Source of truth</p><h2>Persisted genome</h2></div>{% if organism.genome.get('reproduction_threshold') is not none %}<span class="genome-threshold">Reproduction threshold {{ '%.8f' | format(organism.genome.get('reproduction_threshold')) }}</span>{% endif %}</div>
+  <div class="weight-grid organism-genome">
+    {% for action, weights in organism.genome.get('weights', {}).items() %}
+    <article><h3>{{ action }}</h3><dl>{% for weight, value in weights.items() %}<div><dt>{{ weight }}</dt><dd>{{ '%.8f' | format(value) }}</dd></div>{% endfor %}</dl></article>
+    {% else %}<div class="empty-state"><p>No persisted neural weights were available.</p></div>{% endfor %}
+  </div>
+</section>
+
+{% if organism.parent_genome %}
+<section class="panel report-section">
+  <div class="panel-heading"><div><p class="eyebrow">Inherited from organism {{ organism.parent_organism_id }}</p><h2>Parent genome</h2></div>{% if organism.parent_genome.get('reproduction_threshold') is not none %}<span class="genome-threshold">Reproduction threshold {{ '%.8f' | format(organism.parent_genome.get('reproduction_threshold')) }}</span>{% endif %}</div>
+  <div class="weight-grid organism-genome parent-genome">
+    {% for action, weights in organism.parent_genome.get('weights', {}).items() %}
+    <article><h3>{{ action }}</h3><dl>{% for weight, value in weights.items() %}<div><dt>{{ weight }}</dt><dd>{{ '%.8f' | format(value) }}</dd></div>{% endfor %}</dl></article>
+    {% else %}<div class="empty-state"><p>No persisted parent neural weights were available.</p></div>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="panel report-section genome-diff">
+  <div class="panel-heading"><div><p class="eyebrow">Inheritance</p><h2>Genome comparison to parent</h2></div></div>
+  {% if organism.parent_organism_id is none %}
+  <div class="comparison-summary identical">Founder organism — no parent genome for comparison</div>
+  {% elif not organism.parent_exists %}
+  <div class="comparison-summary warning">Parent result is unavailable, so its persisted genome cannot be compared.</div>
+  {% elif organism.genome_comparison.identical %}
+  <div class="comparison-summary identical">Genome identical to parent</div>
+  {% else %}
+  <div class="comparison-summary changed">{% if organism.genome_comparison.changed_weight_count %}{{ organism.genome_comparison.changed_weight_count }} mutated weight{% if organism.genome_comparison.changed_weight_count != 1 %}s{% endif %} detected{% else %}Genome differs from parent{% endif %}</div>
+  {% if organism.genome_comparison.reproduction_threshold_difference %}{% set change = organism.genome_comparison.reproduction_threshold_difference %}<div class="mutation-grid"><article class="mutation-card"><h3>{{ change.path }}</h3><dl><div><dt>Parent</dt><dd>{% if change.parent_value is not none %}{{ '%.8f' | format(change.parent_value) }}{% else %}Missing{% endif %}</dd></div><div><dt>Child</dt><dd>{% if change.child_value is not none %}{{ '%.8f' | format(change.child_value) }}{% else %}Missing{% endif %}</dd></div><div><dt>Delta</dt><dd>{% if change.delta is not none %}{{ '%+.8f' | format(change.delta) }}{% else %}Unavailable{% endif %}</dd></div></dl></article></div>{% endif %}
+  {% if organism.genome_comparison.changed_weights %}<div class="mutation-grid">{% for change in organism.genome_comparison.changed_weights %}
+    <article class="mutation-card"><h3>{{ change.path }}</h3><dl><div><dt>Parent</dt><dd>{% if change.parent_value is not none %}{{ '%.8f' | format(change.parent_value) }}{% else %}Missing{% endif %}</dd></div><div><dt>Child</dt><dd>{% if change.child_value is not none %}{{ '%.8f' | format(change.child_value) }}{% else %}Missing{% endif %}</dd></div><div><dt>Delta</dt><dd>{% if change.delta is not none %}{{ '%+.8f' | format(change.delta) }}{% else %}Unavailable{% endif %}</dd></div></dl></article>
+  {% endfor %}</div>{% endif %}
+  {% endif %}
+  {% if organism.genome_comparison %}
+    {% if organism.genome_comparison.recorded_count_matches is false %}<div class="comparison-warning">Recorded mutation count {{ organism.genome_comparison.recorded_mutated_weight_count }} does not match the {{ organism.genome_comparison.changed_weight_count }} persisted genome difference{% if organism.genome_comparison.changed_weight_count != 1 %}s{% endif %} detected.</div>{% endif %}
+    {% for warning in organism.genome_comparison.topology_warnings %}<div class="comparison-warning">{{ warning }}</div>{% endfor %}
+  {% endif %}
+</section>
+{% endblock %}

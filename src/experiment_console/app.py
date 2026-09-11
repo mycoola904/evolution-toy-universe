@@ -225,6 +225,39 @@ def create_app(
             context={"request": request, "run": detail, "tree": tree},
         )
 
+    @app.get(
+        "/runs/{run_id}/organisms/{organism_id}",
+        response_class=HTMLResponse,
+        name="organism_detail",
+    )
+    async def organism_detail(
+        request: Request,
+        run_id: int,
+        organism_id: int,
+    ) -> HTMLResponse:
+        detail = await run_in_threadpool(experiment_reports.run_detail, run_id)
+        organism = await run_in_threadpool(
+            experiment_reports.organism_detail,
+            run_id,
+            organism_id,
+        )
+        if detail is None or organism is None:
+            return templates.TemplateResponse(
+                request=request,
+                name="organism_not_found.html",
+                context={
+                    "request": request,
+                    "run_id": run_id,
+                    "organism_id": organism_id,
+                },
+                status_code=404,
+            )
+        return templates.TemplateResponse(
+            request=request,
+            name="organism_detail.html",
+            context={"request": request, "run": detail, "organism": organism},
+        )
+
     @app.get("/reports", response_class=HTMLResponse, name="reports")
     async def reports_page(request: Request) -> HTMLResponse:
         recent = await run_in_threadpool(experiment_reports.recent_runs, 10)

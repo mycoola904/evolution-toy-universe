@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Organism Not Found{% endblock %}
+{% block content %}
+<section class="empty-state panel">
+  <p class="eyebrow">Not found</p>
+  <h1>Organism {{ organism_id }} is not in run #{{ run_id }}.</h1>
+  <p>The run or persisted organism result does not exist.</p>
+  <a class="secondary-button" href="{{ url_for('run_detail', run_id=run_id) }}">Back to Run</a>
+</section>
+{% endblock %}

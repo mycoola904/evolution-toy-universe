@@ -2,7 +2,7 @@
 {% macro render_node(node) %}
 <li>
   <article class="tree-node">
-    <strong>{% if node.generation == 0 %}Founder{% else %}Organism{% endif %} {{ node.organism_id }}</strong>
+    <strong><a href="{{ url_for('organism_detail', run_id=run.id, organism_id=node.organism_id) }}">{% if node.generation == 0 %}Founder{% else %}Organism{% endif %} {{ node.organism_id }}</a></strong>
     <span>Generation {{ node.generation }}</span><span>Born {{ node.birth_tick }}</span>
     <span>{% if node.death_tick is none %}Alive at end{% else %}Died {{ node.death_tick }}{% endif %}</span>
     <span>Lifespan {{ node.lifespan }}</span><span>{{ node.child_count }} child{% if node.child_count != 1 %}ren{% endif %}</span>

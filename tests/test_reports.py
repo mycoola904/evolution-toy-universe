@@ -107,3 +107,50 @@ def test_recent_leaderboard_and_comparison_queries(database):
     comparison = reports.compare_runs([first_id, second_id])
     assert [run["id"] for run in comparison] == [first_id, second_id]
     assert comparison[1]["total_organisms"] == 2
+
+
+def test_organism_detail_loads_persisted_genome_and_relationships(database):
+    run_id = insert_report_run(
+        database,
+        seed=8,
+        started_at=datetime(2026, 9, 10, tzinfo=timezone.utc),
+    )
+    parent_genome = {
+        "reproduction_threshold": 150.0,
+        "weights": {"EAT": {"CELL_ENERGY": 0.97}},
+    }
+    child_genome = {
+        "reproduction_threshold": 150.0,
+        "weights": {"EAT": {"CELL_ENERGY": 1.04}},
+    }
+    with database.connect() as connection:
+        connection.execute(
+            "DELETE FROM organism_results WHERE simulation_run_id = %s",
+            (run_id,),
+        )
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO organism_results (
+                    simulation_run_id, organism_id, parent_organism_id,
+                    birth_tick, mutated_weight_count, death_tick, lifespan,
+                    initial_energy, final_energy, peak_energy,
+                    energy_consumed, distance_moved, genome
+                ) VALUES (%s, %s, %s, %s, %s, NULL, 8, 100, 75, 120, 12, 2, %s)
+                """,
+                (
+                    (run_id, 0, None, 0, None, Jsonb(parent_genome)),
+                    (run_id, 1, 0, 2, 1, Jsonb(child_genome)),
+                    (run_id, 2, 0, 3, 0, Jsonb(parent_genome)),
+                ),
+            )
+
+    detail = ExperimentReports(database).organism_detail(run_id, 1)
+
+    assert detail is not None
+    assert detail.genome == child_genome
+    assert detail.parent_organism_id == 0
+    assert detail.sibling_organism_ids == (2,)
+    assert detail.genome_comparison is not None
+    assert detail.genome_comparison.changed_weights[0].path == "EAT.CELL_ENERGY"
+    assert ExperimentReports(database).organism_detail(run_id, 999) is None

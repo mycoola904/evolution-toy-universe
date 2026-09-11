@@ -8,6 +8,7 @@ from experiments.lineage import (
     LineageAnalysis,
     analyze_lineages,
 )
+from experiments.organism_inspection import OrganismInspection, inspect_organism
 from persistence.database import ExperimentDatabase
 
 
@@ -160,6 +161,37 @@ class ExperimentReports:
         founder_id: int,
     ) -> FamilyTreeNode | None:
         return self.lineage_analysis(run_id).trees_by_founder.get(founder_id)
+
+    def organism_detail(
+        self,
+        run_id: int,
+        organism_id: int,
+    ) -> OrganismInspection | None:
+        with self.database.connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                rows = cursor.execute(
+                    """
+                    SELECT
+                        simulation_run_id,
+                        organism_id,
+                        parent_organism_id,
+                        birth_tick,
+                        mutated_weight_count,
+                        death_tick,
+                        lifespan,
+                        initial_energy,
+                        final_energy,
+                        peak_energy,
+                        energy_consumed,
+                        distance_moved,
+                        genome
+                    FROM organism_results
+                    WHERE simulation_run_id = %s
+                    ORDER BY organism_id
+                    """,
+                    (run_id,),
+                ).fetchall()
+        return inspect_organism(rows, organism_id)
 
     def leaderboard(
         self,
