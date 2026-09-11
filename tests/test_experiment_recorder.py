@@ -213,6 +213,31 @@ def test_completed_snapshot_and_recorder_include_dead_organism(
     assert stored_config["regeneration_cell_count"] == 3
     assert stored_config["regeneration_amount"] == 7.0
     assert stored_config["max_ticks"] == 37
+    with database.connect() as connection:
+        stored_report = connection.execute(
+            "SELECT report_json FROM simulation_runs WHERE id = %s",
+            (run_id,),
+        ).fetchone()[0]
+    assert stored_report["summary"]["status"] == "POPULATION EXTINCT"
+    assert stored_report["environmental_energy"][
+        "regeneration_energy_added"
+    ] == 3.0
+
+
+def test_legacy_result_without_structured_report_stores_null(database):
+    result = ExperimentResult(
+        run=make_run_result(),
+        organisms=(make_organism_result(),),
+    )
+
+    run_id = ExperimentRecorder(database).save(result)
+
+    with database.connect() as connection:
+        stored_report = connection.execute(
+            "SELECT report_json FROM simulation_runs WHERE id = %s",
+            (run_id,),
+        ).fetchone()[0]
+    assert stored_report is None
 
 
 def test_completed_snapshot_preserves_reproduction_lineage(config_factory):

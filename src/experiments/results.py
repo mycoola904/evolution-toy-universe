@@ -4,6 +4,7 @@ from typing import Literal
 
 from domain.action import Action
 from domain.simulation import Simulation
+from experiments.report import ExperimentReport, build_experiment_report
 
 
 TerminationReason = Literal["extinction", "tick_limit"]
@@ -62,6 +63,7 @@ class OrganismResult:
 class ExperimentResult:
     run: SimulationRunResult
     organisms: tuple[OrganismResult, ...]
+    report: ExperimentReport | None = None
 
 
 def build_experiment_result(
@@ -122,4 +124,8 @@ def build_experiment_result(
         )
     )
 
-    return ExperimentResult(run=run, organisms=organism_results)
+    return ExperimentResult(
+        run=run,
+        organisms=organism_results,
+        report=build_experiment_report(simulation),
+    )

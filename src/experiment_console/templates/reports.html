@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% macro organism_table(rows, emphasized) %}
+<div class="table-scroll"><table class="compact"><thead><tr><th>Run</th><th>Seed</th><th>Organism</th><th>Lifespan</th><th>Peak energy</th><th>Consumed</th><th>Distance</th></tr></thead><tbody>
+{% for row in rows %}<tr><td><a href="{{ url_for('run_detail', run_id=row.run_id) }}">#{{ row.run_id }}</a></td><td>{{ row.seed }}</td><td>{{ row.organism_id }}</td><td class="{% if emphasized == 'lifespan' %}emphasis{% endif %}">{{ row.lifespan }}</td><td class="{% if emphasized == 'peak_energy' %}emphasis{% endif %}">{{ '%.2f' | format(row.peak_energy) }}</td><td class="{% if emphasized == 'energy_consumed' %}emphasis{% endif %}">{{ '%.2f' | format(row.energy_consumed) }}</td><td class="{% if emphasized == 'distance_moved' %}emphasis{% endif %}">{{ row.distance_moved }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endmacro %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Predefined analysis</p><h1>Reports</h1><p>Read-only views across persisted runs, organisms, and founder families.</p></div><a class="primary-button" href="{{ url_for('run_comparison') }}">Compare Runs</a></section>
+
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Experiments</p><h2>Recent Runs</h2></div><a href="{{ url_for('run_history') }}">Full history →</a></div>
+<div class="table-scroll"><table class="compact"><thead><tr><th>Run</th><th>Started</th><th>Seed</th><th>Ticks</th><th>Ending population</th><th>Termination</th></tr></thead><tbody>
+{% for run in recent_runs %}<tr><td><a href="{{ url_for('run_detail', run_id=run.id) }}">#{{ run.id }}</a> · <a href="{{ url_for('run_families', run_id=run.id) }}">families</a></td><td>{{ run.started_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ run.seed }}</td><td>{{ run.ticks_completed }}</td><td>{{ run.ending_organism_count }}</td><td>{{ run.termination_reason | replace('_', ' ') }}</td></tr>{% endfor %}
+</tbody></table></div></section>
+
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Survival</p><h2>Longest-Lived Organisms</h2></div></div>{{ organism_table(leaderboards.lifespan, 'lifespan') }}</section>
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Energy</p><h2>Highest Peak Energy</h2></div></div>{{ organism_table(leaderboards.peak_energy, 'peak_energy') }}</section>
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Energy</p><h2>Most Energy Consumed</h2></div></div>{{ organism_table(leaderboards.energy_consumed, 'energy_consumed') }}</section>
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Movement</p><h2>Most Mobile Organisms</h2></div></div>{{ organism_table(leaderboards.distance_moved, 'distance_moved') }}</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}New Experiment{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">Experiment Console V1</p>
+    <h1>Configure a universe</h1>
+    <p class="lede">Set reproducible initial conditions, run the existing simulation engine, and inspect the persisted outcome.</p>
+  </div>
+  <div class="hero-note"><strong>Deterministic by design</strong><span>Same configuration + same seed = same universe.</span></div>
+</section>
+
+<div id="experiment-form-panel" class="panel form-panel">
+  <form method="post" action="/experiments">
+    <div class="preset-bar">
+      <label for="preset">Preset</label>
+      <select id="preset" name="preset"
+              hx-get="/" hx-trigger="change" hx-target="#experiment-form-panel"
+              hx-select="#experiment-form-panel" hx-swap="outerHTML" hx-push-url="true">
+        {% for preset in presets %}
+        <option value="{{ preset.slug }}" {% if preset.slug == selected_preset %}selected{% endif %}>{{ preset.name }}</option>
+        {% endfor %}
+      </select>
+      {% for preset in presets %}
+        {% if preset.slug == selected_preset %}<p>{{ preset.description }}</p>{% endif %}
+      {% endfor %}
+    </div>
+
+    {% if errors.form %}<div class="alert" role="alert">{{ errors.form }}</div>{% endif %}
+
+    <div class="form-sections">
+      {% for section, fields in sections.items() %}
+      <fieldset>
+        <legend>{{ section }}</legend>
+        <div class="field-grid">
+          {% for field in fields %}
+          <div class="field {% if errors[field.name] %}field-error{% endif %}">
+            <label for="{{ field.name }}">{{ field.label }}</label>
+            <input id="{{ field.name }}" name="{{ field.name }}" type="{{ field.kind }}"
+                   value="{{ values[field.name] }}" step="{{ field.step }}"
+                   {% if field.minimum is not none %}min="{{ field.minimum }}"{% endif %}
+                   required aria-describedby="{{ field.name }}-help{% if errors[field.name] %} {{ field.name }}-error{% endif %}">
+            <small id="{{ field.name }}-help">{{ field.help_text }}</small>
+            {% if errors[field.name] %}<small class="error-message" id="{{ field.name }}-error" role="alert">{{ errors[field.name] }}</small>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% endfor %}
+    </div>
+
+    <div class="form-actions">
+      <p>Runs execute synchronously in a worker thread. Long presets may take time to complete.</p>
+      <button class="primary-button" type="submit">Run Experiment</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

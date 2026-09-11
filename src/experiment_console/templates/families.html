@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }} Families{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">Lineage comparison</p><h1>Run #{{ run.id }} Families</h1><p>A family is one founder born at tick zero plus every descendant. Founder generation is zero; generations reached is maximum descendant depth.</p></div>
+  <a class="secondary-button" href="{{ url_for('run_detail', run_id=run.id) }}">Run Report</a>
+</section>
+<div class="panel table-panel">
+{% if families %}<div class="table-scroll"><table class="compact lineage-table">
+  <thead><tr><th>Founder</th><th>Members</th><th>Descendants</th><th>Generations</th><th>Alive</th><th>Dead</th><th>Reproducers</th><th>Births</th><th>Longest-lived</th><th>Lifespan</th><th>Total energy</th><th>Avg. energy</th><th>Total distance</th><th>Avg. distance</th><th>Mutated organisms</th><th>Mutated weights</th><th>Extinction tick</th><th>Outcome</th></tr></thead>
+  <tbody>{% for family in families %}<tr>
+    <td><a href="{{ url_for('family_tree', run_id=run.id, founder_id=family.founder_organism_id) }}">Founder {{ family.founder_organism_id }}</a></td>
+    <td>{{ family.total_family_members }}</td><td class="emphasis">{{ family.total_descendants }}</td><td>{{ family.generations_reached }}</td><td>{{ family.alive_at_end }}</td><td>{{ family.dead }}</td><td>{{ family.reproducing_family_members }}</td><td>{{ family.total_births_produced }}</td>
+    <td>Organism {{ family.longest_lived_organism_id }}</td><td>{{ family.longest_lifespan }}</td><td>{{ '%.2f' | format(family.total_energy_consumed) }}</td><td>{{ '%.2f' | format(family.average_energy_consumed) }}</td><td>{{ family.total_distance_moved }}</td><td>{{ '%.2f' | format(family.average_distance_moved) }}</td><td>{{ family.organisms_that_received_mutation }}</td><td>{{ family.total_mutated_weights }}</td><td>{{ family.extinction_tick if family.extinction_tick is not none else '—' }}</td>
+    <td><span class="status {% if not family.lineage_survived %}extinction{% endif %}">{{ 'survived' if family.lineage_survived else 'extinct' }}</span></td>
+  </tr>{% endfor %}</tbody>
+</table></div>{% else %}<div class="empty-state"><h2>No founder families recorded</h2><p>This run has no qualifying founder organism rows.</p></div>{% endif %}
+</div>
+{% endblock %}

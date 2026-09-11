@@ -1010,6 +1010,11 @@ cannot be obtained; an unknown state is not treated as clean. Start times use
 timezone-aware PostgreSQL timestamps and Git dirty state uses a native nullable
 boolean.
 
+New runs also store the completed structured aggregate report in nullable JSONB
+`report_json`. This is a presentation-neutral snapshot used by both the CLI
+formatter and web renderer. Null identifies a legacy run whose normalized data
+is still valid but whose non-normalized historical aggregates were not stored.
+
 ### 11.2 Organism Results
 
 Every organism created during a run receives one lifetime result. Results
@@ -1221,6 +1226,52 @@ If the selected organism dies, the UI should handle that state clearly rather th
 The experiment-configuration screen should construct the same validated configuration object used by command-line and test entry points.
 
 The UI should not maintain a separate interpretation of valid experiment settings.
+
+### 12.8 Experiment Console V1
+
+The first browser milestone provides server-rendered experiment setup, completed
+run detail, run history, predefined PostgreSQL reports, and saved-run
+comparison. The CLI and FastAPI entry points both call the reusable experiment
+runner, which owns the simulation loop and completed-result persistence. Route
+handlers do not duplicate domain execution rules.
+
+The setup page exposes seed, maximum ticks, world dimensions, initial population
+and organism energy, regeneration cell count and amount, reproduction threshold,
+and mutation rate and amount. Presets are application constants that populate
+the editable form; `simulation_runs.config_json` remains the authoritative
+record of submitted configuration.
+
+For this milestone, an HTTP submission waits for completion while the runner is
+executed in a server worker thread so the event loop remains responsive. This
+is an intentionally limited synchronous workflow. Long-running and concurrent
+operation should replace that adapter with process-based/background
+coordination without changing the experiment runner's simulation behavior.
+
+Run detail includes a Plotly.js organism-lifespan distribution prepared from
+reporting-query output. It supports raw count and run-normalized percentage and
+separates organisms alive at completion from organisms that died. Tables remain
+the primary reporting interface. The live Canvas grid and WebSocket
+snapshot/control boundary remain deferred.
+
+### 12.9 Structured Reports and Lineage Analysis
+
+Completed simulation state is converted once into an immutable structured
+experiment report containing the same aggregates used by terminal and browser
+formatters. Report construction is observational and must not advance the
+simulation or consume random values. The persistence boundary serializes this
+aggregate report to `simulation_runs.report_json`; normalized run and organism
+rows remain authoritative and the report JSON does not duplicate organism rows.
+The column is nullable so runs from before this migration continue to load with
+their normalized summaries, though historical aggregates that were never
+stored cannot be reconstructed exactly.
+
+Lineage analysis reads normalized organism results and reconstructs families in
+application reporting code. A founder has no parent and was born at tick zero.
+The founder is generation zero, `generations_reached` is maximum descendant
+depth, and a family survives when at least one member has no death tick at run
+completion. Family summaries and immutable tree nodes are prepared before the
+template boundary; route functions and Jinja templates do not implement
+recursive lineage calculations.
 
 ---
 

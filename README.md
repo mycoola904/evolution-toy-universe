@@ -119,6 +119,39 @@ py -m pytest
 `DATABASE_URL` must not point to the test database. Tests truncate only the two
 application tables in the test database and never create or drop a database.
 
+## Experiment Console
+
+The browser-based Experiment Console uses the same experiment runner and
+PostgreSQL persistence path as the CLI. With `DATABASE_URL` configured in the
+repository-root `.env`, start it from the project virtual environment:
+
+```bash
+.venv/bin/python -m uvicorn experiment_console.app:create_app --factory --app-dir src --reload
+```
+
+Open <http://127.0.0.1:8000>. The setup page exposes seed, tick limit, world
+dimensions, starting population and energy, regeneration controls,
+reproduction threshold, and mutation rate/amount. Baseline, Scarce, Lush, High
+Mutation, and Long Run presets populate the same editable form.
+
+Completed runs are available through Run History. Each new run stores the same
+structured aggregate report shown by the CLI, and its detail page presents the
+full environment, action, eating, movement, reproduction, survival, notable
+organism, and representative-genome sections. Runs created before structured
+report persistence remain readable with their normalized summary data.
+
+Reports include recent runs, four organism leaderboards, run comparison, and a
+lifespan-distribution chart on each run detail page. The chart switches between
+raw counts and percentages and distinguishes organisms that died from those
+alive at experiment end. A run's Lineage / Families view compares each founder
+(an organism born at tick zero with no parent) and all descendants, with an
+indented parent-child tree available for every founder.
+
+Experiment Console V1 executes a submitted run synchronously in a server worker
+thread and returns the completed persisted result. A process-based background
+runner, live Canvas world visualization, and WebSocket updates remain future
+work.
+
 ## License
 
 See the LICENSE file for licensing information.

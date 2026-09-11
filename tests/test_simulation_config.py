@@ -84,3 +84,26 @@ def test_mutation_amount_must_be_finite_and_nonnegative(
 ):
     with pytest.raises(ValueError, match="mutation_amount"):
         config_factory(mutation_amount=mutation_amount)
+
+
+@pytest.mark.parametrize("field", ["world_width", "world_height"])
+def test_world_dimensions_must_be_positive(config_factory, field):
+    with pytest.raises(ValueError, match="world dimensions"):
+        config_factory(**{field: 0})
+
+
+def test_initial_population_must_fit_in_world(config_factory):
+    with pytest.raises(ValueError, match="initial_organisms"):
+        config_factory(world_width=2, world_height=2, initial_organisms=5)
+
+
+@pytest.mark.parametrize(
+    "initial_organism_energy",
+    [-1.0, math.inf, -math.inf, math.nan],
+)
+def test_initial_organism_energy_must_be_finite_and_nonnegative(
+    config_factory,
+    initial_organism_energy,
+):
+    with pytest.raises(ValueError, match="initial_organism_energy"):
+        config_factory(initial_organism_energy=initial_organism_energy)

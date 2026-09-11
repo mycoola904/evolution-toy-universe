@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Compare Runs{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Run summary</p><h1>Compare Runs</h1><p>Select at least two completed experiments.</p></div></section>
+<form class="panel compare-picker" method="get" action="{{ url_for('run_comparison') }}">
+  <div class="run-checkboxes">
+  {% for run in runs %}<label><input type="checkbox" name="run_id" value="{{ run.id }}" {% if run.id|string in selected_ids %}checked{% endif %}><span><strong>Run #{{ run.id }}</strong><small>Seed {{ run.seed }} · {{ run.ticks_completed }} ticks</small></span></label>{% endfor %}
+  </div>
+  {% if error %}<p class="error-message" role="alert">{{ error }}</p>{% endif %}
+  <button class="primary-button" type="submit">Compare Selected Runs</button>
+</form>
+
+{% if compared_runs %}
+<div class="panel table-panel"><div class="table-scroll"><table class="comparison-table">
+  <thead><tr><th>Measure</th>{% for run in compared_runs %}<th><a href="{{ url_for('run_detail', run_id=run.id) }}">Run #{{ run.id }}</a></th>{% endfor %}</tr></thead>
+  <tbody>
+    <tr><th>Seed</th>{% for run in compared_runs %}<td>{{ run.seed }}</td>{% endfor %}</tr>
+    <tr><th>Ticks completed</th>{% for run in compared_runs %}<td>{{ run.ticks_completed }}</td>{% endfor %}</tr>
+    <tr><th>Ending population</th>{% for run in compared_runs %}<td>{{ run.ending_organism_count }}</td>{% endfor %}</tr>
+    <tr><th>Total organisms</th>{% for run in compared_runs %}<td>{{ run.total_organisms }}</td>{% endfor %}</tr>
+    <tr><th>Average lifespan</th>{% for run in compared_runs %}<td>{{ '%.2f' | format(run.average_lifespan) }}</td>{% endfor %}</tr>
+    <tr><th>Longest lifespan</th>{% for run in compared_runs %}<td>{{ run.longest_lifespan }}</td>{% endfor %}</tr>
+    <tr><th>Average energy consumed</th>{% for run in compared_runs %}<td>{{ '%.2f' | format(run.average_energy_consumed) }}</td>{% endfor %}</tr>
+    <tr><th>Average distance moved</th>{% for run in compared_runs %}<td>{{ '%.2f' | format(run.average_distance_moved) }}</td>{% endfor %}</tr>
+    {% for key in ['max_ticks', 'world_width', 'world_height', 'initial_organisms', 'initial_organism_energy', 'regeneration_cell_count', 'regeneration_amount', 'initial_reproduction_threshold', 'mutation_rate', 'mutation_amount'] %}
+    <tr class="config-row"><th>{{ key | replace('_', ' ') }}</th>{% for run in compared_runs %}<td>{{ run.config_json[key] }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

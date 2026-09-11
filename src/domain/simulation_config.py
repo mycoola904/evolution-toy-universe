@@ -28,10 +28,24 @@ class SimulationConfig:
     max_ticks: int = 10_000
 
     def __post_init__(self) -> None:
+        for name in ("seed", "world_width", "world_height", "initial_organisms"):
+            if type(getattr(self, name)) is not int:
+                raise ValueError(f"{name} must be an integer")
+
+        if self.world_width <= 0 or self.world_height <= 0:
+            raise ValueError("world dimensions must be positive integers")
+        if self.initial_organisms < 0:
+            raise ValueError("initial_organisms must be nonnegative")
+
+        total_cells = self.world_width * self.world_height
+        if self.initial_organisms > total_cells:
+            raise ValueError(
+                "initial_organisms must not exceed the number of world cells"
+            )
+
         if type(self.max_ticks) is not int or self.max_ticks <= 0:
             raise ValueError("max_ticks must be a positive integer")
 
-        total_cells = self.world_width * self.world_height
         if type(self.regeneration_cell_count) is not int:
             raise ValueError("regeneration_cell_count must be an integer")
         if not 0 <= self.regeneration_cell_count <= total_cells:
@@ -47,6 +61,36 @@ class SimulationConfig:
             raise ValueError(
                 "regeneration_amount must be finite and nonnegative"
             )
+
+        energy_values = {
+            "initial_organism_energy": self.initial_organism_energy,
+            "base_energy_cost_per_tick": self.base_energy_cost_per_tick,
+            "wait_energy_cost": self.wait_energy_cost,
+            "eat_energy_cost": self.eat_energy_cost,
+            "turn_left_energy_cost": self.turn_left_energy_cost,
+            "turn_right_energy_cost": self.turn_right_energy_cost,
+            "move_forward_energy_cost": self.move_forward_energy_cost,
+        }
+        for name, value in energy_values.items():
+            if not math.isfinite(value) or value < 0.0:
+                raise ValueError(f"{name} must be finite and nonnegative")
+
+        if (
+            type(self.minimum_cell_energy) is not int
+            or type(self.maximum_cell_energy) is not int
+            or self.minimum_cell_energy < 0
+            or self.maximum_cell_energy < self.minimum_cell_energy
+        ):
+            raise ValueError(
+                "cell energy bounds must be nonnegative ordered integers"
+            )
+
+        if (
+            not math.isfinite(self.minimum_initial_weight)
+            or not math.isfinite(self.maximum_initial_weight)
+            or self.minimum_initial_weight > self.maximum_initial_weight
+        ):
+            raise ValueError("initial neural weight bounds must be finite and ordered")
 
         reproduction_values = {
             "initial_reproduction_threshold": (

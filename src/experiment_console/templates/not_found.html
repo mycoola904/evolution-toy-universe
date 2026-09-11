@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Run Not Found{% endblock %}
+{% block content %}<div class="empty-state panel"><p class="eyebrow">Not found</p><h1>Run #{{ run_id }} does not exist</h1><p>The run may have been removed or the address may be incorrect.</p><a class="primary-button" href="{{ url_for('run_history') }}">Open Run History</a></div>{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Run History{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">Persisted experiments</p><h1>Run History</h1></div>
+  <a class="primary-button" href="{{ url_for('experiment_setup') }}">New Experiment</a>
+</section>
+<div class="panel table-panel">
+  {% if runs %}
+  <div class="table-scroll"><table>
+    <thead><tr><th>Run</th><th>Started</th><th>Seed</th><th>Max ticks</th><th>Regeneration</th><th>Initial</th><th>Ending</th><th>Ticks</th><th>Termination</th></tr></thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td><a href="{{ url_for('run_detail', run_id=run.id) }}">#{{ run.id }}</a></td>
+        <td><time datetime="{{ run.started_at.isoformat() }}">{{ run.started_at.strftime('%Y-%m-%d %H:%M') }}</time></td>
+        <td>{{ run.seed }}</td><td>{{ "{:,}".format(run.max_ticks) }}</td><td>{{ run.regeneration_amount }}</td>
+        <td>{{ run.initial_organism_count }}</td><td>{{ run.ending_organism_count }}</td><td>{{ "{:,}".format(run.ticks_completed) }}</td>
+        <td><span class="status {{ run.termination_reason }}">{{ run.termination_reason | replace('_', ' ') }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty-state"><h2>No completed runs yet</h2><p>Configure the first universe to begin building experiment history.</p></div>{% endif %}
+</div>
+{% endblock %}

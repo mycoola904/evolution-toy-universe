@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Experiment Console{% endblock %} · ETU</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('experiment_setup') }}">
+      <span class="brand-mark" aria-hidden="true">ETU</span>
+      <span>Evolution Toy Universe</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="{{ url_for('experiment_setup') }}">New Experiment</a>
+      <a href="{{ url_for('run_history') }}">Run History</a>
+      <a href="{{ url_for('reports') }}">Reports</a>
+    </nav>
+  </header>
+  <main class="page-shell">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    Deterministic artificial-life experiments · Completed runs are stored in PostgreSQL
+  </footer>
+</body>
+</html>

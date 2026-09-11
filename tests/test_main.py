@@ -1,5 +1,6 @@
 import psycopg
 import pytest
+from types import SimpleNamespace
 
 import main as main_module
 from domain.simulation_metrics import TickMetrics, new_action_counts
@@ -32,6 +33,30 @@ def test_max_ticks_can_be_set_from_command_line():
 
 def test_no_persist_option_is_parsed():
     assert parse_args(["--no-persist"]).no_persist is True
+
+
+def test_cli_delegates_execution_to_experiment_runner(monkeypatch):
+    captured = {}
+
+    class CapturingRunner:
+        def __init__(self, **kwargs):
+            captured["runner_dependencies"] = kwargs
+
+        def run(self, config, **kwargs):
+            captured["config"] = config
+            captured["run_options"] = kwargs
+            return SimpleNamespace(
+                simulation=CompletedSimulation(),
+                run_id=None,
+            )
+
+    monkeypatch.setattr(main_module, "ExperimentRunner", CapturingRunner)
+
+    main_module.main(["--seed", "77", "--max-ticks", "2", "--no-persist"])
+
+    assert captured["config"].seed == 77
+    assert captured["config"].max_ticks == 2
+    assert captured["run_options"]["persist"] is False
 
 
 def make_tick_metrics(**overrides) -> TickMetrics:

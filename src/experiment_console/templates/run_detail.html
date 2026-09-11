@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }}{% endblock %}
+{% block head %}<script src="https://cdn.plot.ly/plotly-3.1.0.min.js" defer></script>{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">Completed experiment</p><h1>Run #{{ run.id }}</h1><p>Started {{ run.started_at.strftime('%Y-%m-%d at %H:%M:%S %Z') }}</p></div>
+  <div class="button-row"><a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">Lineage / Families</a><a class="secondary-button" href="{{ url_for('run_history') }}">All Runs</a></div>
+</section>
+
+<section class="metric-grid" aria-label="Run summary">
+  <article><span>Seed</span><strong>{{ run.seed }}</strong></article>
+  <article><span>Ticks completed</span><strong>{{ "{:,}".format(run.ticks_completed) }}</strong></article>
+  <article><span>Starting population</span><strong>{{ run.initial_organism_count }}</strong></article>
+  <article><span>Ending population</span><strong>{{ run.ending_organism_count }}</strong></article>
+  <article><span>Termination</span><strong>{{ run.termination_reason | replace('_', ' ') }}</strong></article>
+  <article><span>Total organisms</span><strong>{{ run.total_organisms }}</strong></article>
+  <article><span>Longest lifespan</span><strong>{{ run.longest_lifespan }}</strong></article>
+  <article><span>Average lifespan</span><strong>{{ '%.2f' | format(run.average_lifespan) }}</strong></article>
+  <article><span>Highest peak energy</span><strong>{{ '%.2f' | format(run.highest_peak_energy) }}</strong></article>
+  <article><span>Avg. energy consumed</span><strong>{{ '%.2f' | format(run.average_energy_consumed) }}</strong></article>
+  <article><span>Avg. distance moved</span><strong>{{ '%.2f' | format(run.average_distance_moved) }}</strong></article>
+</section>
+
+<section class="panel report-section">
+  <div class="panel-heading"><div><p class="eyebrow">Distribution</p><h2>Organism lifespans</h2></div><label class="chart-mode">Measure<select id="lifespan-mode"><option value="count">Raw count</option><option value="percentage">Percentage of run</option></select></label></div>
+  <div id="lifespan-chart" class="chart" role="img" aria-label="Organism lifespan distribution split by alive and dead status"></div>
+  <div class="table-scroll"><table class="compact"><thead><tr><th>Lifespan</th><th>End status</th><th>Count</th><th>Percentage of run</th></tr></thead><tbody>{% for row in distribution %}<tr><td>{{ row.lifespan }}</td><td>{{ 'Alive at end' if row.alive_at_end else 'Died during run' }}</td><td>{{ row.organism_count }}</td><td>{{ '%.2f%%' | format(row.percentage) }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+
+{% if run.report_json %}
+{% set report = run.report_json %}
+<section class="page-heading section-heading"><div><p class="eyebrow">Persisted structured report</p><h2>Full Experiment Report</h2></div></section>
+<div class="report-grid">
+  <section class="panel report-card"><div class="panel-heading"><h2>Experiment Summary</h2></div><dl class="report-list">
+    <div><dt>Status</dt><dd>{{ report.summary.status }}</dd></div><div><dt>Seed</dt><dd>{{ report.summary.seed }}</dd></div>
+    <div><dt>World dimensions</dt><dd>{{ report.summary.world_width }}×{{ report.summary.world_height }}</dd></div><div><dt>Final tick</dt><dd>{{ report.summary.final_tick }}</dd></div>
+    <div><dt>Initial population</dt><dd>{{ report.summary.initial_population }}</dd></div><div><dt>Remaining population</dt><dd>{{ report.summary.remaining_population }}</dd></div>
+  </dl></section>
+  <section class="panel report-card wide"><div class="panel-heading"><h2>Environmental Energy</h2></div><dl class="report-list columns">
+    <div><dt>Initial world energy</dt><dd>{{ '%.2f' | format(report.environmental_energy.initial_world_energy) }}</dd></div>
+    <div><dt>Remaining world energy</dt><dd>{{ '%.2f' | format(report.environmental_energy.remaining_world_energy) }}</dd></div>
+    <div><dt>Regeneration attempted</dt><dd>{{ '%.2f' | format(report.environmental_energy.regeneration_energy_attempted) }}</dd></div>
+    <div><dt>Regeneration added</dt><dd>{{ '%.2f' | format(report.environmental_energy.regeneration_energy_added) }}</dd></div>
+    <div><dt>Regeneration wasted at cap</dt><dd>{{ '%.2f' | format(report.environmental_energy.regeneration_energy_wasted_at_cap) }}</dd></div>
+    <div><dt>World energy consumed</dt><dd>{{ '%.2f' | format(report.environmental_energy.world_energy_consumed) }}</dd></div>
+    <div><dt>Percent consumed</dt><dd>{{ '%.2f%%' | format(report.environmental_energy.percent_consumed) }}</dd></div>
+    <div><dt>Percent left stranded</dt><dd>{{ '%.2f%%' | format(report.environmental_energy.percent_left_stranded) }}</dd></div>
+    <div><dt>Energy eaten on tick 1</dt><dd>{{ '%.2f' | format(report.environmental_energy.energy_eaten_on_tick_one) }}</dd></div>
+    <div><dt>Energy eaten after tick 1</dt><dd>{{ '%.2f' | format(report.environmental_energy.energy_eaten_after_tick_one) }}</dd></div>
+    <div><dt>Percent consumed after tick 1</dt><dd>{{ '%.2f%%' | format(report.environmental_energy.percent_consumed_after_tick_one) }}</dd></div>
+    <div><dt>First successful EAT tick</dt><dd>{{ report.environmental_energy.first_successful_eat_tick if report.environmental_energy.first_successful_eat_tick is not none else 'None' }}</dd></div>
+    <div><dt>Last successful EAT tick</dt><dd>{{ report.environmental_energy.last_successful_eat_tick if report.environmental_energy.last_successful_eat_tick is not none else 'None' }}</dd></div>
+  </dl></section>
+  <section class="panel report-card"><div class="panel-heading"><h2>Action Totals</h2></div><div class="table-scroll"><table class="compact"><thead><tr><th>Action</th><th>Count</th><th>Percent</th></tr></thead><tbody>{% for action in report.action_totals %}<tr><td>{{ action.action }}</td><td>{{ action.count }}</td><td>{{ '%.2f%%' | format(action.percent) }}</td></tr>{% endfor %}</tbody></table></div></section>
+  <section class="panel report-card"><div class="panel-heading"><h2>Eating Results</h2></div><dl class="report-list">
+    <div><dt>Total EAT attempts</dt><dd>{{ report.eating.total_eat_attempts }}</dd></div><div><dt>Successful EAT actions</dt><dd>{{ report.eating.successful_eat_actions }}</dd></div>
+    <div><dt>Unsuccessful EAT actions</dt><dd>{{ report.eating.unsuccessful_eat_actions }}</dd></div><div><dt>EAT success rate</dt><dd>{{ '%.2f%%' | format(report.eating.eat_success_rate) }}</dd></div>
+    <div><dt>Organisms that ate</dt><dd>{{ report.eating.organisms_that_successfully_ate }}</dd></div><div><dt>Total energy eaten</dt><dd>{{ '%.2f' | format(report.eating.total_energy_eaten) }}</dd></div>
+  </dl></section>
+  <section class="panel report-card"><div class="panel-heading"><h2>Movement Results</h2></div><dl class="report-list">
+    <div><dt>MOVE_FORWARD actions</dt><dd>{{ report.movement.total_move_forward_actions }}</dd></div><div><dt>Organisms that moved</dt><dd>{{ report.movement.organisms_that_moved }}</dd></div>
+    <div><dt>Most moves by one organism</dt><dd>{{ report.movement.most_moves }}</dd></div><div><dt>IDs tied for most moves</dt><dd>{{ report.movement.most_mobile_organism_ids | join(', ') if report.movement.most_mobile_organism_ids else 'None' }}</dd></div>
+  </dl></section>
+  <section class="panel report-card"><div class="panel-heading"><h2>Reproduction Results</h2></div><dl class="report-list">
+    <div><dt>Total births</dt><dd>{{ report.reproduction.total_births }}</dd></div><div><dt>Peak population</dt><dd>{{ report.reproduction.peak_population }}</dd></div>
+    <div><dt>Organisms that reproduced</dt><dd>{{ report.reproduction.organisms_that_reproduced }}</dd></div><div><dt>First birth tick</dt><dd>{{ report.reproduction.first_birth_tick if report.reproduction.first_birth_tick is not none else 'None' }}</dd></div>
+    <div><dt>Last birth tick</dt><dd>{{ report.reproduction.last_birth_tick if report.reproduction.last_birth_tick is not none else 'None' }}</dd></div><div><dt>Most offspring</dt><dd>{{ report.reproduction.most_offspring }}</dd></div>
+    <div><dt>Most prolific parent IDs</dt><dd>{{ report.reproduction.most_prolific_parent_ids | join(', ') if report.reproduction.most_prolific_parent_ids else 'None' }}</dd></div>
+  </dl></section>
+  <section class="panel report-card"><div class="panel-heading"><h2>Survival Results</h2></div><dl class="report-list">
+    <div><dt>Last death tick</dt><dd>{{ report.survival.last_death_tick if report.survival.last_death_tick is not none else 'None' }}</dd></div><div><dt>Longest longevity</dt><dd>{{ report.survival.longest_longevity }}</dd></div>
+    <div><dt>Longest-longevity IDs</dt><dd>{{ report.survival.longest_lived_organism_ids | join(', ') if report.survival.longest_lived_organism_ids else 'None' }}</dd></div><div><dt>Number tied</dt><dd>{{ report.survival.number_tied }}</dd></div>
+  </dl></section>
+</div>
+
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Standout results</p><h2>Notable Organisms</h2></div></div><div class="notable-grid">
+{% set notable_labels = {'longest_lived': 'Longest-lived organism', 'largest_energy_consumer': 'Largest energy consumer', 'most_mobile': 'Most mobile organism', 'highest_peak_energy': 'Highest peak-energy organism'} %}
+{% for key, label in notable_labels.items() %}{% set organism = report.notable_organisms[key] %}<article><h3>{{ label }}</h3>{% if organism %}<dl class="report-list"><div><dt>Organism ID</dt><dd>{{ organism.organism_id }}</dd></div><div><dt>Birth tick</dt><dd>{{ organism.birth_tick }}</dd></div><div><dt>Death tick</dt><dd>{{ organism.death_tick if organism.death_tick is not none else 'Alive' }}</dd></div><div><dt>Longevity</dt><dd>{{ organism.longevity }}</dd></div><div><dt>Successful eats</dt><dd>{{ organism.successful_eats }}</dd></div><div><dt>Energy eaten</dt><dd>{{ '%.2f' | format(organism.energy_eaten) }}</dd></div><div><dt>Moves</dt><dd>{{ organism.moves }}</dd></div><div><dt>Peak energy</dt><dd>{{ '%.2f' | format(organism.peak_energy) }}</dd></div><div><dt>Final action</dt><dd>{{ organism.final_action if organism.final_action else 'None' }}</dd></div></dl>{% else %}<p>No organism recorded.</p>{% endif %}</article>{% endfor %}
+</div></section>
+
+<section class="panel report-section"><div class="panel-heading"><div><p class="eyebrow">Representative last survivor</p><h2>Genome</h2></div></div>{% if report.representative_genome %}<div class="genome-summary"><dl class="report-list"><div><dt>Representative organism ID</dt><dd>{{ report.representative_genome.representative_organism_id }}</dd></div><div><dt>Longest-longevity IDs</dt><dd>{{ report.representative_genome.longest_longevity_ids | join(', ') }}</dd></div><div><dt>Reproduction threshold</dt><dd>{{ '%.2f' | format(report.representative_genome.reproduction_threshold) }}</dd></div></dl><div class="weight-grid">{% for action, weights in report.representative_genome.weights.items() %}<article><h3>{{ action }}</h3><dl>{% for sensor, weight in weights.items() %}<div><dt>{{ sensor }}</dt><dd>{{ '%.2f' | format(weight) }}</dd></div>{% endfor %}</dl></article>{% endfor %}</div></div>{% else %}<div class="empty-state"><p>No organism genome was available.</p></div>{% endif %}</section>
+{% else %}
+<div class="alert legacy-notice"><strong>Legacy run:</strong> this experiment predates structured report persistence. Normalized run and organism summaries remain available, but the original full CLI aggregates cannot be reconstructed exactly.</div>
+{% endif %}
+
+<section class="panel"><div class="panel-heading"><div><p class="eyebrow">Reproducibility</p><h2>Configuration</h2></div></div><dl class="config-list">{% for name, value in run.config_json.items() %}<div><dt>{{ name | replace('_', ' ') }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const data = {{ chart_data | safe }};
+  const traces = [
+    {name: "Died during run", x: data.died.lifespans, y: data.died.counts, percentages: data.died.percentages, type: "bar", marker: {color: "#ffac70"}},
+    {name: "Alive at end", x: data.alive.lifespans, y: data.alive.counts, percentages: data.alive.percentages, type: "bar", marker: {color: "#62d6a6"}}
+  ];
+  const layout = {barmode: "stack", margin: {t: 18, r: 16, b: 52, l: 56}, paper_bgcolor: "transparent", plot_bgcolor: "transparent", font: {color: "#c9d5cf", family: "system-ui"}, xaxis: {title: "Lifespan (ticks)", gridcolor: "#263a34"}, yaxis: {title: "Organisms", gridcolor: "#263a34"}};
+  Plotly.newPlot("lifespan-chart", traces, layout, {responsive: true, displaylogo: false});
+  document.querySelector("#lifespan-mode").addEventListener("change", event => {
+    const percentages = event.target.value === "percentage";
+    Plotly.restyle("lifespan-chart", {y: percentages ? [data.died.percentages, data.alive.percentages] : [data.died.counts, data.alive.counts]});
+    Plotly.relayout("lifespan-chart", {"yaxis.title": percentages ? "Percentage of run" : "Organisms"});
+  });
+});
+</script>
+{% endblock %}

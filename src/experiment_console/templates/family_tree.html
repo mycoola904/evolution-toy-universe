@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% macro render_node(node) %}
+<li>
+  <article class="tree-node">
+    <strong>{% if node.generation == 0 %}Founder{% else %}Organism{% endif %} {{ node.organism_id }}</strong>
+    <span>Generation {{ node.generation }}</span><span>Born {{ node.birth_tick }}</span>
+    <span>{% if node.death_tick is none %}Alive at end{% else %}Died {{ node.death_tick }}{% endif %}</span>
+    <span>Lifespan {{ node.lifespan }}</span><span>{{ node.child_count }} child{% if node.child_count != 1 %}ren{% endif %}</span>
+    <span>{% if node.received_mutation is none %}Founder mutation: n/a{% elif node.received_mutation %}Mutated ({{ node.mutated_weight_count }} weights){% else %}No mutated weights{% endif %}</span>
+  </article>
+  {% if node.children %}<ul>{% for child in node.children %}{{ render_node(child) }}{% endfor %}</ul>{% endif %}
+</li>
+{% endmacro %}
+{% block title %}Founder {{ tree.organism_id }} Family{% endblock %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">Family tree · Run #{{ run.id }}</p><h1>Founder {{ tree.organism_id }}</h1><p>Parent-child relationships reconstructed from persisted organism results.</p></div><a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">All Families</a></section>
+<section class="panel tree-panel"><ul class="family-tree">{{ render_node(tree) }}</ul></section>
+{% endblock %}

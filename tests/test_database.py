@@ -105,7 +105,12 @@ def test_initialize_creates_expected_schema(
         "simulation_runs",
         "organism_results",
     } <= tables
-    assert {"termination_reason", "config_json", "git_dirty"} <= run_columns
+    assert {
+        "termination_reason",
+        "config_json",
+        "report_json",
+        "git_dirty",
+    } <= run_columns
     assert {
         "parent_organism_id",
         "mutated_weight_count",

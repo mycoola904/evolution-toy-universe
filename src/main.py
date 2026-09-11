@@ -1,6 +1,6 @@
 import argparse
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 import os
 
 from dotenv import load_dotenv
@@ -9,6 +9,8 @@ from domain.simulation import Simulation
 from domain.simulation_config import SimulationConfig
 from domain.action import Action
 from domain.simulation_metrics import TickMetrics
+from experiments.configuration import BASELINE_CONFIG, build_experiment_config
+from experiments.runner import ExperimentRunner
 from experiments.results import build_experiment_result
 from persistence.database import (
     DatabaseConfigurationError,
@@ -20,7 +22,7 @@ from persistence.experiment_recorder import ExperimentRecorder
 from persistence.git_info import GitInfo, get_git_info
 
 
-DEFAULT_SEED = 4
+DEFAULT_SEED = BASELINE_CONFIG.seed
 DATABASE_URL_ENVIRONMENT_VARIABLE = "DATABASE_URL"
 
 
@@ -73,6 +75,19 @@ def should_print_progress(
     )
 
 
+def print_progress(tick_metrics: TickMetrics) -> None:
+    if not should_print_progress(tick_metrics, progress_interval=10):
+        return
+    print(
+        f"Tick {tick_metrics.tick:<5}"
+        f"| Population {tick_metrics.ending_population:<4} "
+        f"| Births {tick_metrics.births:<3} "
+        f"| Deaths {tick_metrics.deaths:<3} "
+        f"| Ate {tick_metrics.energy_eaten:8.2f} "
+        f"| Moves {tick_metrics.action_counts[Action.MOVE_FORWARD]}"
+    )
+
+
 def persist_completed_experiment(
     simulation: Simulation,
     started_at: datetime,
@@ -94,75 +109,35 @@ def main(args: Sequence[str] | None = None) -> None:
     load_dotenv(PROJECT_ROOT / ".env", override=False)
     options = parse_args(args)
 
-    config = SimulationConfig(
+    config = build_experiment_config(
         seed=options.seed,
-        world_width=40,
-        world_height=40,
-        initial_organisms=100,
-        initial_organism_energy=100.0,
-        minimum_cell_energy=0,
-        maximum_cell_energy=10,
-        regeneration_cell_count=45,
-        regeneration_amount=3.0,
-        minimum_initial_weight=-1.0,
-        maximum_initial_weight=1.0,
-        base_energy_cost_per_tick=1.0,
-        wait_energy_cost=0.00,
-        eat_energy_cost=0.25,
-        turn_left_energy_cost=0.50,
-        turn_right_energy_cost=0.50,
-        move_forward_energy_cost=1.00,
-        initial_reproduction_threshold=150.0,
-        reproduction_energy_cost=0.0,
         max_ticks=options.max_ticks,
     )
 
-    started_at = None
-    git_info = None
     database_url = None
     if not options.no_persist:
         database_url = get_database_url()
-        started_at = datetime.now(timezone.utc)
-        git_info = get_git_info(PROJECT_ROOT)
 
-    simulation = Simulation.big_bang(config)
-
-    progress_interval = 10
-
-    while (
-        simulation.organisms
-        and simulation.tick < config.max_ticks
-    ):
-        tick_metrics = simulation.step()
-
-        if should_print_progress(tick_metrics, progress_interval):
-            print(
-                f"Tick {tick_metrics.tick:<5}"
-                f"| Population {tick_metrics.ending_population:<4} "
-                f"| Births {tick_metrics.births:<3} "
-                f"| Deaths {tick_metrics.deaths:<3} "
-                f"| Ate {tick_metrics.energy_eaten:8.2f} "
-                f"| Moves {tick_metrics.action_counts[Action.MOVE_FORWARD]}"
-            )
-
-    simulation.print_experiment_report()
+    runner = ExperimentRunner(
+        project_root=PROJECT_ROOT,
+        simulation_factory=Simulation.big_bang,
+        git_info_factory=get_git_info,
+        persistence_callback=persist_completed_experiment,
+    )
+    outcome = runner.run(
+        config,
+        database_url=database_url,
+        persist=not options.no_persist,
+        on_tick=print_progress,
+    )
+    outcome.simulation.print_experiment_report()
 
     if not options.no_persist:
-        if (
-            started_at is None
-            or git_info is None
-            or database_url is None
-        ):
+        if outcome.run_id is None or database_url is None:
             raise RuntimeError("Missing experiment provenance")
-        run_id = persist_completed_experiment(
-            simulation=simulation,
-            started_at=started_at,
-            git_info=git_info,
-            database_url=database_url,
-        )
         database_name = database_name_from_connection_info(database_url)
         print(
-            f"Saved experiment run {run_id} to PostgreSQL database "
+            f"Saved experiment run {outcome.run_id} to PostgreSQL database "
             f"{database_name}"
         )
 

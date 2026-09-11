@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}Family Not Found{% endblock %}
+{% block content %}<div class="empty-state panel"><p class="eyebrow">Not found</p><h1>Founder {{ founder_id }} was not found</h1><p>Run #{{ run_id }} does not contain that founder family.</p><a class="primary-button" href="{{ url_for('run_families', run_id=run_id) }}">Open Families</a></div>{% endblock %}

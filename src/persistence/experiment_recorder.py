@@ -23,9 +23,13 @@ class ExperimentRecorder:
                     ending_organism_count,
                     termination_reason,
                     config_json,
+                    report_json,
                     git_commit,
                     git_dirty
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s
+                )
                 RETURNING id
                 """,
                 (
@@ -38,6 +42,11 @@ class ExperimentRecorder:
                     run.ending_organism_count,
                     run.termination_reason,
                     Jsonb(run.config),
+                    (
+                        Jsonb(experiment_result.report.to_dict())
+                        if experiment_result.report is not None
+                        else None
+                    ),
                     run.git_commit,
                     run.git_dirty,
                 ),

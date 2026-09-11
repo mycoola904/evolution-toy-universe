@@ -1,0 +1,109 @@
+from datetime import datetime, timedelta, timezone
+
+from psycopg.types.json import Jsonb
+
+from persistence.reports import ExperimentReports
+
+
+def insert_report_run(database, *, seed, started_at, ending_population=1):
+    config = {
+        "seed": seed,
+        "max_ticks": 10,
+        "world_width": 5,
+        "world_height": 5,
+        "initial_organisms": 1,
+        "initial_organism_energy": 100.0,
+        "regeneration_cell_count": 2,
+        "regeneration_amount": 3.0,
+        "initial_reproduction_threshold": 150.0,
+        "mutation_rate": 0.01,
+        "mutation_amount": 0.1,
+    }
+    with database.connect() as connection:
+        run_id = connection.execute(
+            """
+            INSERT INTO simulation_runs (
+                started_at, seed, world_width, world_height, ticks_completed,
+                initial_organism_count, ending_organism_count,
+                termination_reason, config_json
+            ) VALUES (%s, %s, 5, 5, 10, 1, %s, 'tick_limit', %s)
+            RETURNING id
+            """,
+            (started_at, seed, ending_population, Jsonb(config)),
+        ).fetchone()[0]
+        for organism_id, lifespan, peak, consumed, distance in (
+            (0, 10, 120.0, 20.0, 4),
+            (1, 4, 170.0, 40.0, 9),
+        ):
+            connection.execute(
+                """
+                INSERT INTO organism_results (
+                    simulation_run_id, organism_id, birth_tick, lifespan,
+                    initial_energy, final_energy, peak_energy,
+                    energy_consumed, distance_moved, genome
+                ) VALUES (%s, %s, 0, %s, 100, 80, %s, %s, %s, %s)
+                """,
+                (
+                    run_id,
+                    organism_id,
+                    lifespan,
+                    peak,
+                    consumed,
+                    distance,
+                    Jsonb({}),
+                ),
+            )
+    return run_id
+
+
+def test_run_detail_and_lifespan_distribution_are_aggregated(database):
+    run_id = insert_report_run(
+        database,
+        seed=3,
+        started_at=datetime(2026, 9, 10, tzinfo=timezone.utc),
+    )
+    reports = ExperimentReports(database)
+
+    detail = reports.run_detail(run_id)
+    distribution = reports.lifespan_distribution(run_id)
+
+    assert detail is not None
+    assert detail["total_organisms"] == 2
+    assert detail["longest_lifespan"] == 10
+    assert detail["average_lifespan"] == 7.0
+    assert detail["highest_peak_energy"] == 170.0
+    assert distribution == [
+        {
+            "lifespan": 4,
+            "alive_at_end": True,
+            "organism_count": 1,
+            "percentage": 50.0,
+        },
+        {
+            "lifespan": 10,
+            "alive_at_end": True,
+            "organism_count": 1,
+            "percentage": 50.0,
+        },
+    ]
+
+
+def test_recent_leaderboard_and_comparison_queries(database):
+    now = datetime(2026, 9, 10, tzinfo=timezone.utc)
+    first_id = insert_report_run(database, seed=1, started_at=now)
+    second_id = insert_report_run(
+        database,
+        seed=2,
+        started_at=now + timedelta(minutes=1),
+        ending_population=2,
+    )
+    reports = ExperimentReports(database)
+
+    assert [run["id"] for run in reports.recent_runs()] == [
+        second_id,
+        first_id,
+    ]
+    assert reports.leaderboard("peak_energy", 1)[0]["peak_energy"] == 170.0
+    comparison = reports.compare_runs([first_id, second_id])
+    assert [run["id"] for run in comparison] == [first_id, second_id]
+    assert comparison[1]["total_organisms"] == 2
