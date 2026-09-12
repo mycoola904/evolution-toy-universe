@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }} Survivor Explorer{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Alive at completed run end</p>
+    <h1>Survivor Explorer</h1>
+    <p>Run #{{ run.id }} · Expand a founder, then a persisted genome, to inspect individual survivors. Founder survivor totals include the founder when it remained alive; descendant metrics exclude the founder.</p>
+  </div>
+  <div class="button-row">
+    <a class="secondary-button" href="{{ url_for('run_detail', run_id=run.id) }}">Run Report</a>
+    <a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">All Families</a>
+  </div>
+</section>
+
+{% if explorer.founders %}
+<section class="survivor-hierarchy" aria-label="Survivors grouped by founder and genome">
+  {% for founder in explorer.founders %}
+  <details class="panel survivor-founder">
+    <summary>
+      <span class="summary-title">Founder {{ founder.founder_organism_id }}</span>
+      <span><strong>{{ founder.surviving_descendant_count }}</strong> surviving descendants</span>
+      <span>{{ founder.total_descendants }} total descendants</span>
+      <span>{{ '%.1f%%' | format(founder.descendant_survivor_percentage) }} descendant survival</span>
+      <span>{{ founder.distinct_survivor_genomes }} genomes</span>
+      <span>Avg age {{ '%.1f' | format(founder.average_age) }}</span>
+      <span>Oldest {{ founder.oldest_age }}</span>
+    </summary>
+    <div class="founder-extra">
+      <span>{{ founder.survivor_count }} total family survivors</span>
+      <span>Avg children {{ '%.1f' | format(founder.average_children) }}</span>
+      <span>Most children {{ founder.maximum_children }}</span>
+      <span>Latest generation {{ founder.latest_generation }}</span>
+      <span>Founder: {{ 'alive' if founder.founder_alive_at_end else 'died' }}, lifespan {{ founder.founder_lifespan }}</span>
+    </div>
+    <div class="genome-groups">
+      {% for genome in founder.genomes %}
+      <details class="survivor-genome">
+        <summary>
+          <span class="summary-title"><code>Genome {{ genome.genome_id }}</code></span>
+          <span><strong>{{ genome.survivor_count }}</strong> survivors</span>
+          <span>{{ genome.historical_organism_count }} historical organisms</span>
+          <span>{{ '%.1f%%' | format(genome.survivor_percentage) }} survived</span>
+          <span>Avg age {{ '%.1f' | format(genome.average_age) }}</span>
+          <span>Oldest {{ genome.oldest_age }}</span>
+          <span>Avg children {{ '%.1f' | format(genome.average_children) }}</span>
+        </summary>
+        <div class="genome-extra">
+          <span>Most children {{ genome.maximum_children }}</span>
+          <span>Generations {{ genome.first_generation }}–{{ genome.latest_generation }}</span>
+          <a href="{{ url_for('lineage_mutation_explorer', run_id=run.id, founder_id=founder.founder_organism_id, genome_organism_id=genome.representative_organism_id) }}">Explore lineage mutations →</a>
+        </div>
+        <div class="table-scroll">
+          <table class="compact survivor-table">
+            <thead><tr><th>Organism</th><th>Age</th><th>Generation</th><th>Children</th><th>Final energy</th><th>Parent</th><th>Birth tick</th><th>Genome</th></tr></thead>
+            <tbody>
+              {% for organism in genome.survivors %}
+              <tr>
+                <td><a href="{{ url_for('organism_detail', run_id=run.id, organism_id=organism.organism_id) }}">Organism {{ organism.organism_id }}</a></td>
+                <td class="emphasis">{{ organism.age }}</td>
+                <td>{{ organism.generation }}</td>
+                <td>{{ organism.child_count }}</td>
+                <td>{{ '%.2f' | format(organism.final_energy) }}</td>
+                <td>{% if organism.parent_organism_id is none %}Founder{% else %}<a href="{{ url_for('organism_detail', run_id=run.id, organism_id=organism.parent_organism_id) }}">{{ organism.parent_organism_id }}</a>{% endif %}</td>
+                <td>{{ organism.birth_tick }}</td>
+                <td><code>{{ organism.genome_id }}</code></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+  {% endfor %}
+</section>
+{% else %}
+<section class="panel empty-state">
+  <h2>No organisms survived to the end of this run.</h2>
+  <p>Historical organisms and extinct lineages remain available in the family report.</p>
+</section>
+{% endif %}
+{% endblock %}

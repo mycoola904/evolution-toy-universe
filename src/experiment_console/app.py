@@ -193,6 +193,80 @@ def create_app(
         )
 
     @app.get(
+        "/runs/{run_id}/survivors",
+        response_class=HTMLResponse,
+        name="survivor_explorer",
+    )
+    async def survivor_explorer(
+        request: Request,
+        run_id: int,
+    ) -> HTMLResponse:
+        detail = await run_in_threadpool(experiment_reports.run_detail, run_id)
+        if detail is None:
+            return templates.TemplateResponse(
+                request=request,
+                name="not_found.html",
+                context={"request": request, "run_id": run_id},
+                status_code=404,
+            )
+        explorer = await run_in_threadpool(
+            experiment_reports.survivor_explorer,
+            run_id,
+        )
+        return templates.TemplateResponse(
+            request=request,
+            name="survivor_explorer.html",
+            context={
+                "request": request,
+                "run": detail,
+                "explorer": explorer,
+            },
+        )
+
+    @app.get(
+        "/runs/{run_id}/founders/{founder_id}/genomes/"
+        "{genome_organism_id}/mutations",
+        response_class=HTMLResponse,
+        name="lineage_mutation_explorer",
+    )
+    async def lineage_mutation_explorer(
+        request: Request,
+        run_id: int,
+        founder_id: int,
+        genome_organism_id: int,
+        view: str = "mutations",
+    ) -> HTMLResponse:
+        detail = await run_in_threadpool(experiment_reports.run_detail, run_id)
+        explorer = await run_in_threadpool(
+            experiment_reports.lineage_mutation_explorer,
+            run_id,
+            founder_id,
+            genome_organism_id,
+        )
+        if detail is None or explorer is None:
+            return templates.TemplateResponse(
+                request=request,
+                name="lineage_mutation_not_found.html",
+                context={
+                    "request": request,
+                    "run_id": run_id,
+                    "founder_id": founder_id,
+                },
+                status_code=404,
+            )
+        selected_view = "full" if view == "full" else "mutations"
+        return templates.TemplateResponse(
+            request=request,
+            name="lineage_mutation_explorer.html",
+            context={
+                "request": request,
+                "run": detail,
+                "explorer": explorer,
+                "selected_view": selected_view,
+            },
+        )
+
+    @app.get(
         "/runs/{run_id}/families/{founder_id}",
         response_class=HTMLResponse,
         name="family_tree",

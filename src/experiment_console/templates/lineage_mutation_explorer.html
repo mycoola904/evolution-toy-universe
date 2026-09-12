@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Genome {{ explorer.selected_genome_digest }} Mutation Lineage{% endblock %}
+{% macro organism_link(organism_id) %}<a href="{{ url_for('organism_detail', run_id=run.id, organism_id=organism_id) }}">Organism {{ organism_id }}</a>{% endmacro %}
+{% macro mutation_node(node) %}
+<article class="mutation-lineage-node{% if node.organism_id == explorer.representative_organism_id %} selected-genome{% endif %}">
+  <div class="mutation-node-heading">
+    <div>
+      <p class="eyebrow">{% if node.generation is not none %}Generation {{ node.generation }}{% else %}Known ancestry{% endif %} · Tick {{ node.birth_tick }}</p>
+      <h2>{{ organism_link(node.organism_id) }}</h2>
+    </div>
+    <div class="button-row">
+      {% if node.parent_organism_id is none and explorer.ancestry_complete %}<span class="status">Founder</span>{% endif %}
+      {% if node.organism_id == explorer.representative_organism_id %}<span class="status">Selected genome</span>{% endif %}
+      {% if node.parent_organism_id is not none %}<span>Parent {{ organism_link(node.parent_organism_id) }}</span>{% endif %}
+      <code>{{ node.genome_digest }}</code>
+    </div>
+  </div>
+  {% if node.comparison is none %}
+  <div class="comparison-summary identical">Baseline genome for the known path</div>
+  {% elif node.has_mutation %}
+  <div class="mutation-change-grid">
+    {% for change in node.changes %}
+    <div class="mutation-change">
+      <h3>{{ change.path }}</h3>
+      <dl>
+        <div><dt>Parent</dt><dd>{{ '%.8f' | format(change.parent_value) if change.parent_value is not none else 'Unavailable' }}</dd></div>
+        <div><dt>Child</dt><dd>{{ '%.8f' | format(change.child_value) if change.child_value is not none else 'Unavailable' }}</dd></div>
+        <div><dt>Delta</dt><dd>{{ '%+.8f' | format(change.delta) if change.delta is not none else 'Unavailable' }}</dd></div>
+        <div><dt>Direction</dt><dd>{{ change.direction }}</dd></div>
+      </dl>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="comparison-summary identical">No persisted genome change from parent</div>
+  {% endif %}
+  {% if node.comparison and node.comparison.topology_warnings %}
+    {% for warning in node.comparison.topology_warnings %}<div class="comparison-warning">{{ warning }}</div>{% endfor %}
+  {% endif %}
+  <dl class="branch-context">
+    <div><dt>Direct children</dt><dd>{{ node.branch.direct_children }}</dd></div>
+    <div><dt>Known descendants</dt><dd>{{ node.branch.total_known_descendants }}</dd></div>
+    <div><dt>Surviving descendants</dt><dd>{{ node.branch.surviving_descendants }}</dd></div>
+    <div><dt>Deepest descendant generation</dt><dd>{{ node.branch.deepest_descendant_generation if node.branch.deepest_descendant_generation is not none else 'Unavailable' }}</dd></div>
+    <div><dt>Descendants include selected genome</dt><dd>{{ 'Yes' if node.branch.descendants_include_selected_genome else 'No' }}</dd></div>
+  </dl>
+</article>
+{% endmacro %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Founder-to-genome history · Run #{{ run.id }}</p>
+    <h1>Lineage Mutation Explorer</h1>
+    <p>Genome <code>{{ explorer.selected_genome_digest }}</code> was first observed in organism {{ explorer.representative_organism_id }}{% if explorer.representative_generation is not none %}, generation {{ explorer.representative_generation }}{% endif %}, tick {{ explorer.representative_birth_tick }}. The representative is the earliest carrier by birth tick, then organism ID.</p>
+  </div>
+  <div class="button-row">
+    <a class="secondary-button" href="{{ url_for('survivor_explorer', run_id=run.id) }}">Survivor Explorer</a>
+    <a class="secondary-button" href="{{ url_for('organism_detail', run_id=run.id, organism_id=explorer.representative_organism_id) }}">Representative Organism</a>
+  </div>
+</section>
+
+{% if explorer.ancestry_warning %}<div class="alert legacy-notice"><strong>Partial ancestry:</strong> {{ explorer.ancestry_warning }}</div>{% endif %}
+
+<section class="metric-grid" aria-label="Mutation lineage summary">
+  <article><span>Founder</span><strong>{{ explorer.founder_organism_id }}</strong></article>
+  <article><span>Selected genome</span><strong><code>{{ explorer.selected_genome_digest }}</code></strong></article>
+  <article><span>First organism</span><strong>{{ explorer.representative_organism_id }}</strong></article>
+  <article><span>First generation</span><strong>{{ explorer.representative_generation if explorer.representative_generation is not none else 'Unknown' }}</strong></article>
+  <article><span>First observed tick</span><strong>{{ explorer.representative_birth_tick }}</strong></article>
+  <article><span>Generations from founder</span><strong>{{ explorer.generations_from_founder if explorer.generations_from_founder is not none else 'Unknown' }}</strong></article>
+  <article><span>Mutation events</span><strong>{{ explorer.total_mutation_events }}</strong></article>
+  <article><span>Weight changes</span><strong>{{ explorer.total_weight_changes }}</strong></article>
+  <article><span>Unique weights changed</span><strong>{{ explorer.unique_weights_changed }}</strong></article>
+</section>
+
+<section class="panel report-section">
+  <div class="panel-heading">
+    <div><p class="eyebrow">Chronological ancestry</p><h2>{{ 'Mutation Events Only' if selected_view == 'mutations' else 'Full Ancestry Path' }}</h2></div>
+    <div class="view-toggle" aria-label="Lineage view">
+      <a class="{% if selected_view == 'mutations' %}active{% endif %}" href="?view=mutations">Mutation Events Only</a>
+      <a class="{% if selected_view == 'full' %}active{% endif %}" href="?view=full">Full Ancestry Path</a>
+    </div>
+  </div>
+  <div class="mutation-lineage">
+    {% if selected_view == 'full' %}
+      {% for node in explorer.path %}
+        {% if not loop.first %}<div class="lineage-arrow" aria-hidden="true">↓</div>{% endif %}
+        {{ mutation_node(node) }}
+      {% endfor %}
+    {% else %}
+      {% for step in explorer.mutation_only_steps %}
+        {% if not loop.first %}<div class="lineage-arrow">↓{% if step.skipped_unchanged_generations %} {{ step.skipped_unchanged_generations }} unchanged generation{% if step.skipped_unchanged_generations != 1 %}s{% endif %}{% endif %}</div>{% endif %}
+        {{ mutation_node(step.node) }}
+      {% endfor %}
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel report-section">
+  <div class="panel-heading"><div><p class="eyebrow">Founder comparison</p><h2>Cumulative Genome Changes</h2></div></div>
+  {% if not explorer.ancestry_complete %}
+  <div class="empty-state"><p>The founder genome is unavailable because the ancestry path is incomplete.</p></div>
+  {% elif explorer.cumulative_differences %}
+  <div class="table-scroll"><table class="compact"><thead><tr><th>Weight</th><th>Founder</th><th>Selected</th><th>Net delta</th><th>Direction</th><th>Mutation events</th></tr></thead><tbody>
+    {% for change in explorer.cumulative_differences %}<tr><td><code>{{ change.path }}</code></td><td>{{ '%.8f' | format(change.founder_value) if change.founder_value is not none else 'Unavailable' }}</td><td>{{ '%.8f' | format(change.selected_value) if change.selected_value is not none else 'Unavailable' }}</td><td class="emphasis">{{ '%+.8f' | format(change.net_delta) if change.net_delta is not none else 'Unavailable' }}</td><td>{{ change.direction }}</td><td>{{ change.mutation_count }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="comparison-summary identical">Selected genome is identical to the founder genome.</div>
+  {% endif %}
+</section>
+{% endblock %}

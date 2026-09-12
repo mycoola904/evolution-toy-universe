@@ -8,7 +8,12 @@ from experiments.lineage import (
     LineageAnalysis,
     analyze_lineages,
 )
+from experiments.lineage_mutations import (
+    LineageMutationExplorer,
+    build_lineage_mutation_explorer,
+)
 from experiments.organism_inspection import OrganismInspection, inspect_organism
+from experiments.survivors import SurvivorExplorer, build_survivor_explorer
 from persistence.database import ExperimentDatabase
 
 
@@ -154,6 +159,56 @@ class ExperimentReports:
 
     def family_summaries(self, run_id: int) -> tuple[FamilySummary, ...]:
         return self.lineage_analysis(run_id).families
+
+    def survivor_explorer(self, run_id: int) -> SurvivorExplorer:
+        with self.database.connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                rows = cursor.execute(
+                    """
+                    SELECT
+                        organism_id,
+                        parent_organism_id,
+                        birth_tick,
+                        death_tick,
+                        lifespan,
+                        final_energy,
+                        genome
+                    FROM organism_results
+                    WHERE simulation_run_id = %s
+                    ORDER BY organism_id
+                    """,
+                    (run_id,),
+                ).fetchall()
+        return build_survivor_explorer(rows)
+
+    def lineage_mutation_explorer(
+        self,
+        run_id: int,
+        founder_id: int,
+        genome_organism_id: int,
+    ) -> LineageMutationExplorer | None:
+        with self.database.connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                rows = cursor.execute(
+                    """
+                    SELECT
+                        organism_id,
+                        parent_organism_id,
+                        birth_tick,
+                        death_tick,
+                        mutated_weight_count,
+                        genome
+                    FROM organism_results
+                    WHERE simulation_run_id = %s
+                    ORDER BY organism_id
+                    """,
+                    (run_id,),
+                ).fetchall()
+        return build_lineage_mutation_explorer(
+            rows,
+            founder_organism_id=founder_id,
+            selected_genome_organism_id=genome_organism_id,
+        )
 
     def family_tree(
         self,

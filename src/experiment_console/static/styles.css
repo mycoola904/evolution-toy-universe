@@ -144,6 +144,42 @@ tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
 .comparison-table tbody th { color: var(--muted); text-transform: capitalize; }
 .empty-state { text-align: center; padding: 5rem 2rem; }
 .empty-state p { color: var(--muted); }
+.survivor-hierarchy { display: grid; gap: 1rem; }
+.survivor-founder, .survivor-genome { overflow: hidden; }
+.survivor-founder > summary, .survivor-genome > summary { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem 1.2rem; padding: 1.15rem 1.35rem; cursor: pointer; color: var(--muted); font-size: .86rem; list-style-position: inside; }
+.survivor-founder > summary:hover, .survivor-genome > summary:hover { background: rgba(98,214,166,.035); }
+.survivor-founder > summary::marker, .survivor-genome > summary::marker { color: var(--accent); }
+.survivor-founder .summary-title, .survivor-genome .summary-title { color: var(--text); font-size: 1.05rem; font-weight: 800; margin-right: auto; }
+.survivor-founder summary strong, .survivor-genome summary strong { color: var(--accent); font-size: 1rem; }
+.founder-extra, .genome-extra { display: flex; flex-wrap: wrap; gap: .55rem 1.4rem; padding: .8rem 1.35rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+.genome-groups { display: grid; gap: 1px; padding: 0 1.1rem 1.1rem; }
+.survivor-genome { border: 1px solid var(--line); background: rgba(7,17,15,.35); }
+.survivor-genome + .survivor-genome { margin-top: .7rem; }
+.survivor-table { background: rgba(7,17,15,.28); }
+code { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.view-toggle { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.view-toggle a { padding: .55rem .75rem; color: var(--muted); font-size: .8rem; }
+.view-toggle a + a { border-left: 1px solid var(--line); }
+.view-toggle a.active { color: var(--accent); background: var(--accent-dark); }
+.view-toggle a:hover { text-decoration: none; }
+.mutation-lineage { padding: 1.3rem; display: grid; justify-items: stretch; }
+.mutation-lineage-node { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.mutation-lineage-node.selected-genome { border-color: var(--accent); }
+.mutation-node-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.2rem; }
+.mutation-node-heading h2, .mutation-node-heading p { margin: 0; }
+.mutation-node-heading h2 { font-size: 1.2rem; }
+.lineage-arrow { padding: .7rem; text-align: center; color: var(--muted); font-size: .82rem; }
+.mutation-change-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.mutation-change { padding: 1rem 1.2rem; background: rgba(255,172,112,.04); border-left: 3px solid var(--warning); }
+.mutation-change h3 { margin: 0 0 .65rem; color: var(--warning); font-size: .9rem; }
+.mutation-change dl, .branch-context { margin: 0; }
+.mutation-change dl div { display: flex; justify-content: space-between; gap: 1rem; padding: .2rem 0; }
+.mutation-change dt, .branch-context dt { color: var(--muted); }
+.mutation-change dd, .branch-context dd { margin: 0; font-variant-numeric: tabular-nums; }
+.branch-context { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.branch-context div { padding: .75rem 1rem; border-right: 1px solid var(--line); }
+.branch-context dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+.branch-context dd { margin-top: .3rem; }
 footer { border-top: 1px solid var(--line); color: var(--muted); text-align: center; padding: 2rem; font-size: .8rem; }
 @media (max-width: 900px) {
   .form-sections, .detail-grid, .report-grid, .genome-summary, .behavior-grid { grid-template-columns: 1fr; }
@@ -152,7 +188,8 @@ footer { border-top: 1px solid var(--line); color: var(--muted); text-align: cen
   .weight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); border-left: 0; }
   .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .run-checkboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mutation-grid { grid-template-columns: 1fr; }
+  .mutation-grid, .mutation-change-grid { grid-template-columns: 1fr; }
+  .branch-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .site-header { align-items: flex-start; padding-block: 1rem; flex-direction: column; }
@@ -163,4 +200,7 @@ footer { border-top: 1px solid var(--line); color: var(--muted); text-align: cen
   .preset-bar { grid-template-columns: 1fr; }
   .field-grid, .run-checkboxes { grid-template-columns: 1fr; }
   .metric-grid { grid-template-columns: 1fr; }
+  .panel-heading, .mutation-node-heading { align-items: flex-start; flex-direction: column; }
+  .view-toggle { width: 100%; }
+  .view-toggle a { flex: 1; text-align: center; }
 }

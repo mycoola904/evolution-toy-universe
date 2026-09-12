@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Mutation Lineage Not Found{% endblock %}
+{% block content %}
+<section class="panel empty-state">
+  <p class="eyebrow">Run #{{ run_id }} · Founder {{ founder_id }}</p>
+  <h1>Mutation lineage not found</h1>
+  <p>The selected persisted genome carrier was unavailable or did not belong to this founder family.</p>
+  <a class="secondary-button" href="{{ url_for('survivor_explorer', run_id=run_id) }}">Back to Survivor Explorer</a>
+</section>
+{% endblock %}

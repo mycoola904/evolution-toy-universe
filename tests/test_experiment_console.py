@@ -216,3 +216,103 @@ def test_family_tree_links_to_organism_genomes_and_parent_diffs(
     assert unchanged.status_code == 200
     assert "Genome identical to parent" in unchanged.text
     assert missing.status_code == 404
+
+
+def test_survivor_explorer_links_to_existing_organism_detail(
+    database,
+    test_database_url,
+):
+    genome = {"weights": {"EAT": {"CELL_ENERGY": 1.0}}}
+    mutated_genome = {"weights": {"EAT": {"CELL_ENERGY": 1.2}}}
+    with database.connect() as connection:
+        run_id = connection.execute(
+            """
+            INSERT INTO simulation_runs (
+                started_at, seed, world_width, world_height, ticks_completed,
+                initial_organism_count, ending_organism_count,
+                termination_reason, config_json
+            ) VALUES (%s, 12, 5, 5, 10, 1, 1, 'tick_limit', %s)
+            RETURNING id
+            """,
+            (datetime(2026, 9, 10, tzinfo=timezone.utc), Jsonb({})),
+        ).fetchone()[0]
+        with connection.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO organism_results (
+                    simulation_run_id, organism_id, parent_organism_id,
+                    birth_tick, mutated_weight_count, death_tick, lifespan, initial_energy,
+                    final_energy, peak_energy, energy_consumed,
+                    distance_moved, genome
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, 100, %s, 120, 12, 2, %s)
+                """,
+                (
+                    (run_id, 100, None, 0, None, 4, 4, 0, Jsonb(genome)),
+                    (run_id, 101, 100, 2, 1, None, 8, 43, Jsonb(mutated_genome)),
+                ),
+            )
+
+    response = TestClient(create_app(database_url=test_database_url)).get(
+        f"/runs/{run_id}/survivors"
+    )
+
+    assert response.status_code == 200
+    assert "Survivor Explorer" in response.text
+    assert "1</strong> surviving descendants" in response.text
+    assert "2 total descendants" not in response.text
+    assert f'/runs/{run_id}/organisms/101' in response.text
+    assert "Organism 100" not in response.text
+    mutation_path = f"/runs/{run_id}/founders/100/genomes/101/mutations"
+    assert mutation_path in response.text
+
+    mutation_report = TestClient(
+        create_app(database_url=test_database_url)
+    ).get(mutation_path)
+    full_path = TestClient(
+        create_app(database_url=test_database_url)
+    ).get(f"{mutation_path}?view=full")
+
+    assert mutation_report.status_code == 200
+    assert "Lineage Mutation Explorer" in mutation_report.text
+    assert "Mutation Events Only" in mutation_report.text
+    assert "EAT.CELL_ENERGY" in mutation_report.text
+    assert "+0.20000000" in mutation_report.text
+    assert f'/runs/{run_id}/organisms/100' in mutation_report.text
+    assert f'/runs/{run_id}/organisms/101' in mutation_report.text
+    assert full_path.status_code == 200
+    assert "Full Ancestry Path" in full_path.text
+
+
+def test_survivor_explorer_has_a_clear_empty_state(
+    database,
+    test_database_url,
+):
+    with database.connect() as connection:
+        run_id = connection.execute(
+            """
+            INSERT INTO simulation_runs (
+                started_at, seed, world_width, world_height, ticks_completed,
+                initial_organism_count, ending_organism_count,
+                termination_reason, config_json
+            ) VALUES (%s, 13, 5, 5, 4, 1, 0, 'extinction', %s)
+            RETURNING id
+            """,
+            (datetime(2026, 9, 10, tzinfo=timezone.utc), Jsonb({})),
+        ).fetchone()[0]
+        connection.execute(
+            """
+            INSERT INTO organism_results (
+                simulation_run_id, organism_id, birth_tick, death_tick,
+                lifespan, initial_energy, final_energy, peak_energy,
+                energy_consumed, distance_moved, genome
+            ) VALUES (%s, 0, 0, 4, 4, 100, 0, 100, 0, 0, %s)
+            """,
+            (run_id, Jsonb({"weights": {}})),
+        )
+
+    response = TestClient(create_app(database_url=test_database_url)).get(
+        f"/runs/{run_id}/survivors"
+    )
+
+    assert response.status_code == 200
+    assert "No organisms survived to the end of this run." in response.text

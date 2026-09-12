@@ -14,6 +14,16 @@ class GenomeWeightDifference:
     def path(self) -> str:
         return f"{self.action}.{self.weight}"
 
+    @property
+    def direction(self) -> str:
+        if self.delta is None:
+            return "changed"
+        if self.delta > 0:
+            return "increased"
+        if self.delta < 0:
+            return "decreased"
+        return "unchanged"
+
 
 @dataclass(frozen=True)
 class GenomeComparison:

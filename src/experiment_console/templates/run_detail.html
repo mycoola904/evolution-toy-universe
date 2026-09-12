@@ -4,7 +4,7 @@
 {% block content %}
 <section class="page-heading">
   <div><p class="eyebrow">Completed experiment</p><h1>Run #{{ run.id }}</h1><p>Started {{ run.started_at.strftime('%Y-%m-%d at %H:%M:%S %Z') }}</p></div>
-  <div class="button-row"><a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">Lineage / Families</a><a class="secondary-button" href="{{ url_for('run_history') }}">All Runs</a></div>
+  <div class="button-row"><a class="secondary-button" href="{{ url_for('survivor_explorer', run_id=run.id) }}">Survivor Explorer</a><a class="secondary-button" href="{{ url_for('run_families', run_id=run.id) }}">Lineage / Families</a><a class="secondary-button" href="{{ url_for('run_history') }}">All Runs</a></div>
 </section>
 
 <section class="metric-grid" aria-label="Run summary">
